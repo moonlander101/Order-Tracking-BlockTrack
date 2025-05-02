@@ -1,0 +1,30 @@
+<div class="container mt-5">
+    <h2>Create Order</h2>
+    <form [formGroup]="orderForm" (ngSubmit)="submitForm()">
+      <div class="mb-3">
+        <label>Order ID</label>
+        <input type="text" class="form-control" formControlName="order_id" required />
+      </div>
+  
+      <div class="mb-3">
+        <label>Status</label>
+        <input type="text" class="form-control" formControlName="status" required />
+      </div>
+  
+      <div class="mb-3">
+        <label>Timestamp</label>
+        <input type="datetime-local" class="form-control" formControlName="timestamp" required />
+      </div>
+  
+      <div class="mb-3">
+        <label>Document</label>
+        <input type="file" class="form-control" (change)="onFileChange($event)" required />
+      </div>
+  
+      <button class="btn btn-primary" type="submit">Submit</button>
+    </form>
+  
+    <div *ngIf="responseMessage" class="alert alert-success mt-3">{{ responseMessage }}</div>
+    <div *ngIf="errorMessage" class="alert alert-danger mt-3">{{ errorMessage }}</div>
+  </div>
+  

@@ -1,0 +1,16 @@
+<div class="read-order">
+    <h2>Read Order</h2>
+    <form [formGroup]="readForm" (ngSubmit)="submitForm()">
+      <label for="order_id">Order ID:</label>
+      <input id="order_id" formControlName="order_id" placeholder="Enter Order ID" />
+      <button type="submit">Fetch Order</button>
+    </form>
+  
+    <div *ngIf="loading">🔄 Fetching...</div>
+  
+    <div *ngIf="result">
+      <h3>Result:</h3>
+      <pre>{{ result | json }}</pre>
+    </div>
+  </div>
+  

@@ -25,56 +25,65 @@ class CreateOrderView(APIView):
     parser_classes = [MultiPartParser]
 
     def post(self, request):
-        fabric_env = get_fabric_env()
+        print("📥 Received POST request")
+
+        fabric_env = os.environ.copy()
+        fabric_env["PATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/bin:" + fabric_env["PATH"]
+        fabric_env["FABRIC_CFG_PATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/config"
+        fabric_env["CORE_PEER_LOCALMSPID"] = "Org1MSP"
+        fabric_env["CORE_PEER_TLS_ENABLED"] = "true"
+        fabric_env["CORE_PEER_TLS_ROOTCERT_FILE"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
+        fabric_env["CORE_PEER_MSPCONFIGPATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
+        fabric_env["CORE_PEER_ADDRESS"] = "localhost:7051"
 
         order_id = request.data.get("order_id")
         status = request.data.get("status")
         timestamp = request.data.get("timestamp")
         file = request.FILES.get("document")
 
-        if not all([order_id, status, timestamp, file]):
-            return Response({"error": "Missing fields"}, status=400)
-
-        # Save file temporarily
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            for chunk in file.chunks():
-                tmp.write(chunk)
-            tmp_path = tmp.name
+        print("📝 order_id:", order_id)
+        print("📝 status:", status)
+        print("📝 timestamp:", timestamp)
+        print("📎 file:", file.name if file else "No file")
 
         try:
+            # Save file temporarily
+            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                for chunk in file.chunks():
+                    tmp.write(chunk)
+                tmp_path = tmp.name
+            print("📁 Temp file saved at:", tmp_path)
+
             # Upload to IPFS
             cid = upload_to_ipfs(tmp_path)
+            print("🧬 IPFS CID:", cid)
 
-            # Chaincode command
-            command = f"""
-peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com \
---tls \
---cafile {TEST_NETWORK}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
---peerAddresses localhost:7051 \
---tlsRootCertFiles {TEST_NETWORK}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
---peerAddresses localhost:9051 \
---tlsRootCertFiles {TEST_NETWORK}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt \
---waitForEvent \
--C mychannel -n ordercc \
--c '{{"function":"CreateOrder","Args":["{order_id}", "{status}", "{timestamp}", "{cid}"]}}'
-"""
+            # Prepare command
+            import json
+            args_json = json.dumps({
+                "function": "CreateOrder",
+                "Args": [order_id, status, timestamp, cid]
+            })
+            script_path = "/Users/ravishan/hyperledger-fabric/fabric-samples/scripts/invoke_order.sh"
+
+            command = f"{script_path} '{args_json}'"
+            print("🚀 FULL PEER INVOKE COMMAND:\n", command)
 
             result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
 
-            if result.returncode != 0:
-                return Response({
-                    "error": "Blockchain invoke failed",
-                    "stderr": result.stderr
-                }, status=500)
+            print("✅ Blockchain STDOUT:\n", result.stdout)
+            print("❌ Blockchain STDERR:\n", result.stderr)
 
-            return Response({
-                "message": "Order created",
-                "cid": cid,
-                "blockchain_response": result.stdout.strip()
-            })
+            if result.returncode != 0:
+                raise Exception("Chaincode invoke failed")
+
+            return Response({"message": "Order created", "cid": cid, "blockchain_response": result.stdout})
 
         except Exception as e:
-            return Response({"error": "Internal server error", "details": str(e)}, status=500)
+            return Response({
+                "error": "Failed to create order",
+                "details": str(e)
+            }, status=500)
 
 
 class ReadOrderView(APIView):
@@ -90,6 +99,8 @@ peer chaincode query \
 -C mychannel -n ordercc \
 -c '{{"Args":["ReadOrder", "{order_id}"]}}'
 """
+        print("FULL COMMAND:\n", command)
+
 
         try:
             result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
