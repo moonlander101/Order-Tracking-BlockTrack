@@ -43,7 +43,7 @@ Before running this project, ensure you have:
 ### 1. Clone the Repo
 
 ```bash
-git clone https://github.com/yourusername/blocktrack.git
+git clone https://github.com/IASSCMS/Order-Tracking-BlockTrack.git
 cd blocktrack
 ```
 
