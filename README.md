@@ -1,12 +1,13 @@
 # 🔗 BlockTrack – Blockchain-Powered Order Tracking System
 
-This project implements a backend for a **Blockchain-Based Order Tracking System**, developed as part of **Group 30** in the *Intelligent and Smart Supply Chain Management System* project.
+This project implements a fullstack solution for a **Blockchain-Based Order Tracking System**, developed as part of **Group 30** in the *Intelligent and Smart Supply Chain Management System* project.
 
-It uses:
+It includes:
 
-* **Hyperledger Fabric** (blockchain network)
+* **Hyperledger Fabric** (blockchain ledger)
 * **IPFS** (for decentralized file storage)
 * **Django REST Framework** (backend API)
+* **Angular** (frontend for order interaction)
 
 ---
 
@@ -18,9 +19,14 @@ blocktrack/
 │   ├── api/                   # Views and IPFS utils
 │   ├── manage.py
 │   └── requirements.txt
+├── blocktrack_frontend/       # Angular frontend app
+│   ├── src/app/create-order/  # Order creation UI
+│   ├── src/app/read-order/    # Read order UI
+│   └── angular.json
 ├── chaincode-order/           # Go chaincode
 │   └── order.go
-├── .gitignore
+├── scripts/                   # Shell automation scripts
+│   └── invoke_order.sh
 └── README.md
 ```
 
@@ -35,13 +41,13 @@ Before running this project, ensure you have:
 * ✅ [IPFS Desktop](https://docs.ipfs.tech/install/ipfs-desktop/) or run `ipfs daemon`
 * ✅ Python 3.10+
 * ✅ Go (for chaincode)
+* ✅ Node.js + Angular CLI (for frontend)
 
 ---
 
 ## 🚀 How to Run the Project
 
 ### 1. Clone the Repo
-
 ```bash
 git clone https://github.com/IASSCMS/Order-Tracking-BlockTrack.git
 cd blocktrack
@@ -50,9 +56,7 @@ cd blocktrack
 ---
 
 ### 2. Start the Blockchain Network
-
 From your Fabric samples directory:
-
 ```bash
 cd ~/hyperledger-fabric/fabric-samples/test-network
 ./network.sh down
@@ -60,21 +64,23 @@ cd ~/hyperledger-fabric/fabric-samples/test-network
 ./network.sh deployCC -ccn ordercc -ccp ../order-tracking/chaincode-order -ccl go
 ```
 
-> Note: Adjust the chaincode path `-ccp` if necessary to point to `chaincode-order`.
+> ✅ Note: Adjust `-ccp` if needed to point to your `chaincode-order` directory.
 
 ---
 
 ### 3. Start IPFS
-
 Run either:
+```bash
+# Option A
+Open IPFS Desktop
 
-* **IPFS Desktop**, or
-* CLI: `ipfs daemon`
+# Option B
+ipfs daemon
+```
 
 ---
 
 ### 4. Run the Django Backend
-
 ```bash
 cd blocktrack_backend
 python3 -m venv env
@@ -83,42 +89,69 @@ pip install -r requirements.txt
 python manage.py runserver
 ```
 
+### 5. Shell Script Automation (Optional)
+You can use a script for invoking blockchain:
+```bash
+chmod +x scripts/invoke_order.sh
+```
+The Django view will run this script with proper environment to interact with peer CLI.
+
+---
+
+### 6. Run the Angular Frontend
+```bash
+cd blocktrack_frontend
+npm install
+ng serve
+```
+Open your browser at: [http://localhost:4200](http://localhost:4200)
+
 ---
 
 ## 🔌 API Endpoints
 
 | Method | URL                           | Description                    |
-| ------ | ----------------------------- | ------------------------------ |
-| POST   | `/api/create-order/`          | Create an order with file      |
+|--------|-------------------------------|--------------------------------|
+| POST   | `/api/create-order/`          | Create order + file + IPFS     |
 | GET    | `/api/read-order/<order_id>/` | Retrieve order from blockchain |
 
 ---
 
-### 🦪 Sample POST Request (in Postman)
+## 🖼️ Angular UI Pages
 
-**POST** `http://127.0.0.1:8000/api/create-order/`
-**Body type:** `form-data`
+| Route                  | Function           |
+|------------------------|--------------------|
+| `/create-order`        | Upload + register  |
+| `/read-order`          | Search order ID    |
+
+---
+
+## 🧪 Testing with Postman
+
+### POST `/api/create-order/`
+**Body:** `form-data`
 
 | Key       | Type | Value                  |
-| --------- | ---- | ---------------------- |
-| order\_id | Text | `order901`             |
+|-----------|------|------------------------|
+| order_id  | Text | `order901`             |
 | status    | Text | `Packed`               |
 | timestamp | Text | `2025-05-02T22:00:00Z` |
-| document  | File | (upload a small file)  |
+| document  | File | upload any file        |
+
+### GET `/api/read-order/order901/`
+- Returns the blockchain order details in JSON.
 
 ---
 
 ## 🔧 Chaincode Logic (Go)
 
-Your chaincode handles:
-
+Chaincode functions:
 ```go
 CreateOrder(ctx, id, status, timestamp, docHash)
 ReadOrder(ctx, id)
 ```
 
-Each order is stored on the ledger like this:
-
+Each order is stored like:
 ```json
 {
   "ID": "order901",
@@ -130,12 +163,11 @@ Each order is stored on the ledger like this:
 
 ---
 
-## 📂 IPFS
-
-Uploaded documents are stored in IPFS and linked via CID (`Qm...`).
-To access them directly:
-
-```text
+## 📂 IPFS Integration
+- Files uploaded in Create Order go to IPFS.
+- CID is stored on blockchain.
+- You can access documents at:
+```bash
 https://ipfs.io/ipfs/<CID>
 ```
 
@@ -143,14 +175,12 @@ https://ipfs.io/ipfs/<CID>
 
 ## 👨‍💼 Project Notes
 
-* Developed by **Group 30** – Blockchain-Based Order Tracking
-* Part of **Group H: Intelligent Supply Chain Management System**
-* For internal testing & collaboration – frontend not included yet
+- Developed by **Group 30** – Blockchain-Based Order Tracking
+- Part of **Group H: Intelligent and Smart Supply Chain Management System**
+- Frontend + Backend + Chaincode fully working
 
 ---
 
-## 📞 Questions?
 
-Ping Pasindu or teammates via GitHub or your project group.
 
----
+
