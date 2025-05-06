@@ -62,7 +62,7 @@ curl -sSL https://bit.ly/2ysbOFE | bash -s -- -d -s
 cd ./test-network
 ./network.sh down
 ./network.sh up createChannel -ca
-./network.sh deployCC -ccn ordercc -ccp ../order-tracking/chaincode-order -ccl go
+./network.sh deployCC -ccn ordercc -ccp ./chaincode-order -ccl go
 ```
 
 > ✅ Note: Adjust `-ccp` if needed to point to your `chaincode-order` directory.
