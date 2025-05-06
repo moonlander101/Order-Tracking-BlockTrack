@@ -1,0 +1,5 @@
+log.txt
+channel-artifacts/*
+
+!./organizations/*.yaml
+organizations/*
