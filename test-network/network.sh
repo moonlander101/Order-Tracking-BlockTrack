@@ -311,6 +311,9 @@ function networkUp() {
     COMPOSE_FILES="${COMPOSE_FILES} -f compose/${COMPOSE_FILE_COUCH} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_COUCH}"
   fi
 
+  # Add the IPFS compose file
+  COMPOSE_FILES="${COMPOSE_FILES} -f compose/${COMPOSE_FILE_IPFS}" # No CLI-specific variant needed for standard IPFS image
+
   DOCKER_SOCK="${DOCKER_SOCK}" ${CONTAINER_CLI_COMPOSE} ${COMPOSE_FILES} up -d 2>&1
 
   $CONTAINER_CLI ps -a
@@ -438,7 +441,13 @@ function networkDown() {
   COMPOSE_BASE_FILES="-f compose/${COMPOSE_FILE_BASE} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_BASE}"
   COMPOSE_COUCH_FILES="-f compose/${COMPOSE_FILE_COUCH} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_COUCH}"
   COMPOSE_CA_FILES="-f compose/${COMPOSE_FILE_CA} -f compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_CA}"
-  COMPOSE_FILES="${COMPOSE_BASE_FILES} ${COMPOSE_COUCH_FILES} ${COMPOSE_CA_FILES}"
+  # COMPOSE_FILES="${COMPOSE_BASE_FILES} ${COMPOSE_COUCH_FILES} ${COMPOSE_CA_FILES}"
+  
+  # Define IPFS compose files variable
+  COMPOSE_IPFS_FILES="-f compose/${COMPOSE_FILE_IPFS}" # Assuming no CLI variant needed
+
+  # Combine all compose files for network down
+  COMPOSE_FILES="${COMPOSE_BASE_FILES} ${COMPOSE_COUCH_FILES} ${COMPOSE_CA_FILES} ${COMPOSE_IPFS_FILES}"
 
   # stop org3 containers also in addition to org1 and org2, in case we were running sample to add org3
   COMPOSE_ORG3_BASE_FILES="-f addOrg3/compose/${COMPOSE_FILE_ORG3_BASE} -f addOrg3/compose/${CONTAINER_CLI}/${CONTAINER_CLI}-${COMPOSE_FILE_ORG3_BASE}"
@@ -491,6 +500,8 @@ COMPOSE_FILE_ORG3_COUCH=compose-couch-org3.yaml
 # certificate authorities compose file
 COMPOSE_FILE_ORG3_CA=compose-ca-org3.yaml
 #
+
+COMPOSE_FILE_IPFS=compose-ipfs.yaml
 
 # Get docker sock path from environment variable
 SOCK="${DOCKER_HOST:-/var/run/docker.sock}"
