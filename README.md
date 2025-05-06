@@ -58,7 +58,8 @@ cd blocktrack
 ### 2. Start the Blockchain Network
 From your Fabric samples directory:
 ```bash
-cd ~/hyperledger-fabric/fabric-samples/test-network
+curl -sSL https://bit.ly/2ysbOFE | bash -s -- -d -s
+cd ./test-network
 ./network.sh down
 ./network.sh up createChannel -ca
 ./network.sh deployCC -ccn ordercc -ccp ../order-tracking/chaincode-order -ccl go
