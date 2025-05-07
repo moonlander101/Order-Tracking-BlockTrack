@@ -173,6 +173,15 @@ https://ipfs.io/ipfs/<CID>
 ```
 
 ---
+🗄️ Database Integration (PostgreSQL)
+
+Switched from SQLite to PostgreSQL.
+
+All order details are stored in blocktrack_db.Order.
+
+Fully synced with Django models and admin panel.
+
+---
 
 ## 👨‍💼 Project Notes
 
