@@ -2,11 +2,9 @@ from supplier_request.models import SupplierRequest
 from orders.models import Order, OrderDetails, OrderProduct
 from django.utils import timezone
 import random
-import uuid
 
-# Dummy data for SupplierRequest
+# SupplierRequest dummy data
 statuses = ['pending', 'received']
-
 for i in range(10):
     SupplierRequest.objects.create(
         supplier_id=random.randint(1, 5),
@@ -20,28 +18,18 @@ for i in range(10):
         unit_price=round(random.uniform(10, 500), 2)
     )
 
-# Dummy data for Order and OrderDetails
-order_statuses = ['Preparing', 'Shipped', 'Delivered', 'Cancelled']
-
-# Sample addresses
-cities = ['Colombo', 'Kandy', 'Galle', 'Jaffna']
-countries = ['Sri Lanka', 'India', 'USA', 'UK']
-zipcodes = ['00100', '00200', '01000', '10001']
-
-# Generate Orders
-
-statuses = ['Pending', 'Accepted', 'Shipped', 'Delivered', 'Cancelled']
-
+# Orders and OrderDetails dummy data
+order_statuses = ['Pending', 'Accepted', 'Shipped', 'Delivered', 'Cancelled']
 for i in range(5):
     order = Order.objects.create(
         user_id=i,
-        status=random.choice(statuses),
+        status=random.choice(order_statuses),
         blockchain_tx_id=f"tx_{i:04}",
         ipfs_hash=f"QmHash{i:04}"
     )
 
     OrderDetails.objects.create(
-        order_id=order,
+        order=order,
         warehouse_id=random.randint(1000, 9999),
         nearest_city=f"City-{i}",
         latitude=f"{6.9 + i:.4f}",

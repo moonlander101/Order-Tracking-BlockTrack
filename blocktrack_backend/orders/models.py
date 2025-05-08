@@ -19,7 +19,7 @@ class Order(models.Model):
         return f"Order {self.order_id} - {self.status}"
 
 class OrderDetails(models.Model):
-    order_id = models.ForeignKey(Order, related_name='order_details', on_delete=models.CASCADE)
+    order = models.OneToOneField(Order, related_name='details', on_delete=models.CASCADE)
     warehouse_id = models.IntegerField()
     nearest_city = models.CharField(max_length=255)
     latitude = models.CharField(max_length=32)
@@ -29,7 +29,7 @@ class OrderDetails(models.Model):
         return f"Order {self.order.order_id} - Details"
 
 class OrderProduct(models.Model):
-    order_id = models.ForeignKey(Order, related_name='order_products', on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, related_name='order_products', on_delete=models.CASCADE)
     product_id = models.IntegerField()
     count = models.IntegerField()
     unit_price = models.FloatField()
