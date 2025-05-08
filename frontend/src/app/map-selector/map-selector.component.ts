@@ -37,6 +37,30 @@ export class MapSelectorComponent implements AfterViewInit {
       attribution: '© OpenStreetMap contributors'
     }).addTo(this.map);
 
+    // 🌍 Attempt to get user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
+
+          this.lat = userLat;
+          this.lng = userLng;
+          this.map.setView([userLat, userLng], 15);
+
+          // 📍 Add initial marker at user's location
+          this.marker = L.marker([userLat, userLng]).addTo(this.map);
+          this.locationSelected.emit({ lat: userLat, lng: userLng });
+        },
+        (error) => {
+          console.warn('Geolocation failed or denied:', error);
+          // fallback view already applied
+        }
+      );
+    }
+
+
+
     this.map.on('click', (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
 
