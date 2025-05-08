@@ -1,7 +1,7 @@
 
 ---
 
-### 🧪 `scripts/setup_chaincode.sh`
+
 
 ```bash
 #!/bin/bash
