@@ -94,3 +94,25 @@ class SupplierRequestGetOrPartialUpdate(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         req.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class SupplierRequestMetrics(APIView):
+    def get(self, request, supplier_id):
+        data = SupplierRequest.objects.filter(supplier_id=supplier_id).values(
+            'is_defective', 'quality', 'count', 'unit_price', 'status', 'expected_delivery_date', 'received_at'
+        )
+
+        total = len(data)
+        defective_count = sum(1 for d in data if d.get('is_defective'))
+        returned_count = sum(1 for d in data if d.get('status') == "returned")
+        q_sum = sum(d.get('quality', 0) or 0 for d in data)
+
+        metrics = {
+            "total_requests": total,
+            "defective_count" : defective_count, 
+            "defective_rate": defective_count / total,
+            "return_count" : returned_count,
+            "returned_rate": returned_count / total,
+            "quality_score": q_sum / total,
+            "data" : data
+        }
+        return Response(metrics)

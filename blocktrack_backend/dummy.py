@@ -3,9 +3,9 @@ from orders.models import Order, OrderDetails, OrderProduct
 from django.utils import timezone
 import random
 
-# SupplierRequest dummy data
-statuses = ['pending', 'received']
-for i in range(10):
+statuses = ['pending', 'accepted', 'received', 'returned', 'rejected']
+
+for _ in range(10):
     SupplierRequest.objects.create(
         supplier_id=random.randint(1, 5),
         created_at=timezone.now(),
@@ -15,7 +15,9 @@ for i in range(10):
         status=random.choice(statuses),
         received_at=timezone.now() if random.choice([True, False]) else None,
         warehouse_id=random.randint(1, 3),
-        unit_price=round(random.uniform(10, 500), 2)
+        unit_price=round(random.uniform(10, 500), 2),
+        quality=random.randint(0, 10) if random.choice([True, False]) else None,
+        is_defective=random.choice([True, False, None])
     )
 
 # Orders and OrderDetails dummy data
@@ -38,7 +40,7 @@ for i in range(5):
 
     for j in range(3):
         OrderProduct.objects.create(
-            order_id=order,
+            order=order,
             product_id=100 + j,
             count=random.randint(1, 10),
             unit_price=round(random.uniform(10.0, 100.0), 2)
