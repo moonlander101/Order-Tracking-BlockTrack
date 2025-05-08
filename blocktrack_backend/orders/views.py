@@ -9,11 +9,17 @@ import tempfile
 import os
 from .ipfs_utils import upload_to_ipfs
 from django_filters.rest_framework import DjangoFilterBackend
+from pathlib import Path
 
-FABRIC_BASE = "/Users/ravishan/hyperledger-fabric/fabric-samples"
-BIN_PATH = f"{FABRIC_BASE}/bin"
-TEST_NETWORK = f"{FABRIC_BASE}/test-network"
+# 🔧 Dynamically determine project base
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # → blocktrack_backend/
+FABRIC_BASE = PROJECT_ROOT / "test-network" / ".."
+FABRIC_BASE = FABRIC_BASE.resolve()
 
+BIN_PATH = FABRIC_BASE / "bin"
+CONFIG_PATH = FABRIC_BASE / "config"
+TEST_NETWORK = FABRIC_BASE / "test-network"
+SCRIPT_PATH = FABRIC_BASE / "test-network" / "scripts" / "invoke_order.sh"
 def get_fabric_env():
     env = os.environ.copy()
     env["PATH"] = f"{BIN_PATH}:" + env["PATH"]
@@ -31,14 +37,8 @@ class CreateOrderView(APIView):
     def post(self, request):
         print("📥 Received POST request")
 
-        fabric_env = os.environ.copy()
-        fabric_env["PATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/bin:" + fabric_env["PATH"]
-        fabric_env["FABRIC_CFG_PATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/config"
-        fabric_env["CORE_PEER_LOCALMSPID"] = "Org1MSP"
-        fabric_env["CORE_PEER_TLS_ENABLED"] = "true"
-        fabric_env["CORE_PEER_TLS_ROOTCERT_FILE"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
-        fabric_env["CORE_PEER_MSPCONFIGPATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
-        fabric_env["CORE_PEER_ADDRESS"] = "localhost:7051"
+        fabric_env = get_fabric_env()
+
 
         order_id = request.data.get("order_id")
         status = request.data.get("status")
@@ -68,9 +68,8 @@ class CreateOrderView(APIView):
                 "function": "CreateOrder",
                 "Args": [order_id, status, timestamp, cid]
             })
-            script_path = "/Users/ravishan/hyperledger-fabric/fabric-samples/scripts/invoke_order.sh"
+            command = f"{SCRIPT_PATH} '{args_json}'"
 
-            command = f"{script_path} '{args_json}'"
             print("🚀 FULL PEER INVOKE COMMAND:\n", command)
 
             result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
