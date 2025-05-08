@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🚨 Exit on any error
+
 set -e
 
 # Parse input JSON
