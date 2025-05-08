@@ -104,15 +104,23 @@ class SupplierRequestMetrics(APIView):
         total = len(data)
         defective_count = sum(1 for d in data if d.get('is_defective'))
         returned_count = sum(1 for d in data if d.get('status') == "returned")
+        received_count = sum(1 for d in data if d.get('status') == "received")
         q_sum = sum(d.get('quality', 0) or 0 for d in data)
+
+        # Calculate on-time delivery rate
+        on_time_count = sum(
+            1 for d in data if d.get('received_at') and d.get('expected_delivery_date') and d['received_at'] <= d['expected_delivery_date']
+        )
 
         metrics = {
             "total_requests": total,
-            "defective_count" : defective_count, 
-            "defective_rate": defective_count / total,
-            "return_count" : returned_count,
-            "returned_rate": returned_count / total,
-            "quality_score": q_sum / total,
-            "data" : data
+            "defective_count": defective_count,
+            "defective_rate": defective_count / total if total > 0 else 0,
+            "return_count": returned_count,
+            "returned_rate": returned_count / total if total > 0 else 0,
+            "quality_score": q_sum / total if total > 0 else 0,
+            "on_time_delivery_rate": on_time_count / total if total > 0 else 0,
+            "fill_rate": received_count / total if total > 0 else 0,
+            "data": data
         }
         return Response(metrics)
