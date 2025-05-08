@@ -10,6 +10,9 @@ import os
 from .ipfs_utils import upload_to_ipfs
 from django_filters.rest_framework import DjangoFilterBackend
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 FABRIC_BASE = "/Users/ravishan/hyperledger-fabric/fabric-samples"
 BIN_PATH = f"{FABRIC_BASE}/bin"
 TEST_NETWORK = f"{FABRIC_BASE}/test-network"
@@ -134,12 +137,20 @@ class OrderListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['status']
 
 class OrderByWarehouse(APIView):
+    @swagger_auto_schema(
+        manual_parameters=[
+            # Define query parameter "test"
+            openapi.Parameter(
+                'minimal', openapi.IN_QUERY, description="Option to reduce parameters to only order_id and products", type=openapi.TYPE_BOOLEAN
+            )
+        ]
+    )
     def get(self, request, warehouse_id):
         queryset = Order.objects.filter(details__warehouse_id=warehouse_id)
 
         minimal = request.GET.get('minimal', False)
 
-        if (minimal):
+        if (eval(minimal[0].upper() + minimal[1:])):
             serializer = MinimalOrderSerializer(queryset, many=True)
         else:
             serializer = OrderSerializer(queryset, many=True)
