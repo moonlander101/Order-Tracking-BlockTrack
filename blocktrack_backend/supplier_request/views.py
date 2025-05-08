@@ -21,16 +21,16 @@ class SupplierRequestListCreate(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter(
-                'request_id', openapi.IN_QUERY,
-                description="Optional request_id to filter",
-                type=openapi.TYPE_STRING
-            )
-        ],
-        responses={200: SupplierRequestSerializer(many=True)}
-    )
+    # @swagger_auto_schema(
+    #     manual_parameters=[
+    #         openapi.Parameter(
+    #             'request_id', openapi.IN_QUERY,
+    #             description="Optional request_id to filter",
+    #             type=openapi.TYPE_STRING
+    #         )
+    #     ],
+    #     responses={200: SupplierRequestSerializer(many=True)}
+    # )
     def get(self, request):
         requests = SupplierRequest.objects.all()
         serializer = SupplierRequestSerializer(requests, many=True)

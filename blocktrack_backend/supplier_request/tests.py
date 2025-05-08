@@ -1,9 +1,7 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.utils import timezone
-
 from .models import SupplierRequest
-
 
 class SupplierRequestTests(APITestCase):
     def setUp(self):
@@ -17,7 +15,9 @@ class SupplierRequestTests(APITestCase):
             status='pending',
             received_at=None,
             warehouse_id=1,
-            unit_price=20.5
+            unit_price=20.5,
+            quality=7,
+            is_defective=False
         )
         self.base_url = '/api/v0/supplier-request/'
 
@@ -32,7 +32,9 @@ class SupplierRequestTests(APITestCase):
             'status': 'pending',
             'received_at': None,
             'warehouse_id': 1,
-            'unit_price': 25.0
+            'unit_price': 25.0,
+            'quality': 9,
+            'is_defective': False
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -59,10 +61,17 @@ class SupplierRequestTests(APITestCase):
 
     def test_partial_update_supplier_request(self):
         url = f"{self.base_url}{self.supplier_request.request_id}/"
-        response = self.client.patch(url, {'count': 60.0}, format='json')
+        patch_data = {
+            'count': 60.0,
+            'quality': 8,
+            'is_defective': True
+        }
+        response = self.client.patch(url, patch_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.supplier_request.refresh_from_db()
         self.assertEqual(self.supplier_request.count, 60.0)
+        self.assertEqual(self.supplier_request.quality, 8)
+        self.assertTrue(self.supplier_request.is_defective)
 
     def test_delete_supplier_request(self):
         url = f"{self.base_url}{self.supplier_request.request_id}/"
