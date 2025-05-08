@@ -1,5 +1,5 @@
 from supplier_request.models import SupplierRequest
-from orders.models import Order, OrderDetails
+from orders.models import Order, OrderDetails, OrderProduct
 from django.utils import timezone
 import random
 import uuid
@@ -29,28 +29,31 @@ countries = ['Sri Lanka', 'India', 'USA', 'UK']
 zipcodes = ['00100', '00200', '01000', '10001']
 
 # Generate Orders
-for i in range(15):
+
+statuses = ['Pending', 'Accepted', 'Shipped', 'Delivered', 'Cancelled']
+
+for i in range(5):
     order = Order.objects.create(
-        product=f"Product {random.randint(1, 50)}",
-        customer=f"Customer {random.randint(1, 20)}",
-        status=random.choice(order_statuses),
-        blockchain_tx_id=str(uuid.uuid4()),
-        ipfs_hash=str(uuid.uuid4()),
-        # created_at is auto_now_add
+        user_id=i,
+        status=random.choice(statuses),
+        blockchain_tx_id=f"tx_{i:04}",
+        ipfs_hash=f"QmHash{i:04}"
     )
 
-    # Generate between 1 and 5 details for each order
-    details_count = random.randint(1, 5)
-    for _ in range(details_count):
-        OrderDetails.objects.create(
+    OrderDetails.objects.create(
+        order_id=order,
+        warehouse_id=random.randint(1000, 9999),
+        nearest_city=f"City-{i}",
+        latitude=f"{6.9 + i:.4f}",
+        longitude=f"{79.8 + i:.4f}"
+    )
+
+    for j in range(3):
+        OrderProduct.objects.create(
             order_id=order,
-            product_id=random.randint(100, 200),
-            count=random.randint(1, 20),
-            warehouse_id=random.randint(1, 5),
-            address=f"{random.randint(1, 999)} Main Street",
-            zipcode=random.choice(zipcodes),
-            city=random.choice(cities),
-            country=random.choice(countries)
+            product_id=100 + j,
+            count=random.randint(1, 10),
+            unit_price=round(random.uniform(10.0, 100.0), 2)
         )
 
 print("Dummy data generation complete.")
