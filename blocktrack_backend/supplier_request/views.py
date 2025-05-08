@@ -37,6 +37,12 @@ class SupplierRequestListCreate(APIView):
         return Response(serializer.data)
 
 
+class SupplierRequestBySupplier(APIView):
+    def get(self, request, supplier_id):
+        requests = SupplierRequest.objects.filter(supplier_id=supplier_id)
+        serializer = SupplierRequestSerializer(requests, many=True)
+        return Response(serializer.data)
+
 class SupplierRequestByWarehouse(APIView):
     def get(self, request, warehouse_id):
         requests = SupplierRequest.objects.filter(warehouse_id=warehouse_id)
