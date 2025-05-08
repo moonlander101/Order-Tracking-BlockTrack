@@ -60,12 +60,31 @@ From your Fabric samples directory:
 ```bash
 curl -sSL https://bit.ly/2ysbOFE | bash -s -- -d -s
 cd ./test-network
-./network.sh down
-./network.sh up createChannel -ca
-./network.sh deployCC -ccn ordercc -ccp ./chaincode-order -ccl go
+
 ```
 
 > ✅ Note: Adjust `-ccp` if needed to point to your `chaincode-order` directory.
+>
+> ## ⚙️ One-Click Network Setup (Full Automation)
+
+To make setup easier, we’ve included a shell script: `scripts/setup_chaincode.sh`
+
+### 🔧 What It Does:
+- Brings down any existing Fabric network
+- Starts the test network with 2 organizations (Org1 + Org2)
+- Packages the chaincode
+- Installs it on both peers
+- Approves chaincode definition for both orgs
+- Commits chaincode
+- Ready for backend integration!
+
+---
+
+### 🚀 To Run It:
+```bash
+chmod +x scripts/setup_chaincode.sh
+./scripts/setup_chaincode.sh
+🔁 Make sure you're inside the test-network directory before running the script.
 
 ---
 
@@ -171,15 +190,6 @@ Each order is stored like:
 ```bash
 https://ipfs.io/ipfs/<CID>
 ```
-
----
-🗄️ Database Integration (PostgreSQL)
-
-Switched from SQLite to PostgreSQL.
-
-All order details are stored in blocktrack_db.Order.
-
-Fully synced with Django models and admin panel.
 
 ---
 
