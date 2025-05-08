@@ -109,12 +109,43 @@ Open your browser at: [http://localhost:4200](http://localhost:4200)
 
 ---
 
+### 7. Start the Database with Docker Compose
+To start the database, use the provided `docker-compose.yaml` file:
+```bash
+cd blocktrack_backend
+sudo docker-compose up -d
+```
+This will start the PostgreSQL database required for the backend.
+
+### 8. Environment Variables
+Ensure the following environment variables are set for the backend:
+
+```env
+DATABASE_NAME=blocktrack_db
+DATABASE_USER=blocktrack_user
+DATABASE_PASSWORD=securepassword
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+SECRET_KEY=your_secret_key_here
+DEBUG=True
+ALLOWED_HOSTS=*
+```
+
+### 9. Environment Variables
+Run the dummy.py as follows:
+```bash
+# On Linux/MacOS
+python manage.py shell < dummy.py
+
+# On Windows
+python manage.py shell < dummy.py
+```
+
+---
+
 ## 🔌 API Endpoints
 
-| Method | URL                           | Description                    |
-|--------|-------------------------------|--------------------------------|
-| POST   | `/api/create-order/`          | Create order + file + IPFS     |
-| GET    | `/api/read-order/<order_id>/` | Retrieve order from blockchain |
+Run the django app and visit `/swagger` to view the swagger-UI docs
 
 ---
 
