@@ -131,7 +131,7 @@ DEBUG=True
 ALLOWED_HOSTS=*
 ```
 
-### 9. Environment Variables
+### 9. Dummy Data
 Run the dummy.py as follows:
 ```bash
 # On Linux/MacOS
