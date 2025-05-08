@@ -36,19 +36,17 @@ class CreateOrderView(APIView):
 
     def post(self, request):
         print("📥 Received POST request")
-
         fabric_env = get_fabric_env()
-
 
         order_id = request.data.get("order_id")
         status = request.data.get("status")
         timestamp = request.data.get("timestamp")
         file = request.FILES.get("document")
 
-        print("📝 order_id:", order_id)
-        print("📝 status:", status)
-        print("📝 timestamp:", timestamp)
-        print("📎 file:", file.name if file else "No file")
+        print(f"📝 order_id: {order_id}")
+        print(f"📝 status: {status}")
+        print(f"📝 timestamp: {timestamp}")
+        print(f"📎 file: {file.name if file else 'No file'}")
 
         try:
             # Save file temporarily
@@ -62,25 +60,33 @@ class CreateOrderView(APIView):
             cid = upload_to_ipfs(tmp_path)
             print("🧬 IPFS CID:", cid)
 
-            # Prepare command
+            # Prepare chaincode invoke args
             import json
             args_json = json.dumps({
                 "function": "CreateOrder",
                 "Args": [order_id, status, timestamp, cid]
             })
-            command = f"{SCRIPT_PATH} '{args_json}'"
 
-            print("🚀 FULL PEER INVOKE COMMAND:\n", command)
+            print("🔧 Executing:", SCRIPT_PATH, args_json)
 
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
+            result = subprocess.run(
+                [str(SCRIPT_PATH), args_json],
+                capture_output=True,
+                text=True,
+                env=fabric_env
+            )
 
-            print("✅ Blockchain STDOUT:\n", result.stdout)
-            print("❌ Blockchain STDERR:\n", result.stderr)
+            print("✅ STDOUT:", result.stdout)
+            print("❌ STDERR:", result.stderr)
 
             if result.returncode != 0:
-                raise Exception("Chaincode invoke failed")
+                raise Exception(f"Invoke script failed:\n{result.stderr}")
 
-            return Response({"message": "Order created", "cid": cid, "blockchain_response": result.stdout})
+            return Response({
+                "message": "Order created",
+                "cid": cid,
+                "blockchain_response": result.stdout.strip()
+            })
 
         except Exception as e:
             return Response({
@@ -93,25 +99,27 @@ class ReadOrderView(APIView):
     def get(self, request, order_id):
         fabric_env = get_fabric_env()
 
-        command = f"""
-peer chaincode query \
---tls \
---cafile {TEST_NETWORK}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
---peerAddresses localhost:7051 \
---tlsRootCertFiles {TEST_NETWORK}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
--C mychannel -n ordercc \
--c '{{"Args":["ReadOrder", "{order_id}"]}}'
-"""
-        print("FULL COMMAND:\n", command)
+        # Safely formatted single-line command
+        command = [
+            "peer", "chaincode", "query",
+            "--tls",
+            "--cafile", str(TEST_NETWORK / "organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"),
+            "--peerAddresses", "localhost:7051",
+            "--tlsRootCertFiles", str(TEST_NETWORK / "organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"),
+            "-C", "mychannel",
+            "-n", "ordercc",
+            "-c", f'{{"Args":["ReadOrder", "{order_id}"]}}'
+        ]
 
+        print("🔍 Executing ReadOrder command for:", order_id)
 
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
+            result = subprocess.run(command, capture_output=True, text=True, env=fabric_env)
 
             if result.returncode != 0:
                 return Response({
                     "error": f"Failed to read order '{order_id}' from blockchain",
-                    "details": result.stderr
+                    "details": result.stderr.strip()
                 }, status=404)
 
             return Response({
