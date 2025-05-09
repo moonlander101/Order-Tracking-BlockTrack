@@ -227,10 +227,10 @@ class OrderStatusUpdateView(APIView):
             "order_id": order_id,
             "origin": {"lat": origin_latitude, "lng":   origin_longitude},
             "destination": {"lat": order.details.longitude, "lng": order.details.longitude},
-            "demand": order.demand if hasattr(order, 'demand') else 10
+            "demand": 10
         }
         send_to_kafka('orders.created', event)
-
+        
         serializer = OrderSerializer(order, data=new_data, partial=True)
         if serializer.is_valid():
             serializer.save()

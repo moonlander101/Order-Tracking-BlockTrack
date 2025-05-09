@@ -1,6 +1,7 @@
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
