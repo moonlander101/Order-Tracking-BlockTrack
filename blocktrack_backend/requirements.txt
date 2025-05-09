@@ -15,3 +15,4 @@ varint==1.0.2
 django-filter
 psycopg2-binary
 python-dotenv
+kafka-python

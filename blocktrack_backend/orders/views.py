@@ -1,3 +1,5 @@
+import json
+from . import send_to_kafka
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
@@ -12,6 +14,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 
 FABRIC_BASE = "/Users/ravishan/hyperledger-fabric/fabric-samples"
 BIN_PATH = f"{FABRIC_BASE}/bin"
@@ -179,6 +182,14 @@ class OrderStatusUpdateView(APIView):
                 'status': openapi.Schema(
                     type=openapi.TYPE_STRING,
                     enum=['Pending', 'Accepted', 'Shipped', 'Delivered', 'Cancelled']
+                ),
+                'warehouse_location': openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'latitude': openapi.Schema(type=openapi.TYPE_NUMBER, description="Latitude of the warehouse"),
+                        'longitude': openapi.Schema(type=openapi.TYPE_NUMBER, description="Longitude of the warehouse")
+                    },
+                    description="Location of the warehouse"
                 )
             }
         ),
@@ -188,9 +199,39 @@ class OrderStatusUpdateView(APIView):
         try:
             order = Order.objects.get(order_id=order_id)
         except Order.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = OrderSerializer(order, data=request.data, partial=True)
+        new_status = request.data.get('status')
+        warehouse_location = request.data.get('warehouse_location')
+        
+        new_data = {}
+
+        if warehouse_location:
+            origin_longitude = warehouse_location.get('longitude')
+            origin_latitude = warehouse_location.get('latitude')
+        
+        # Validate status against model choices if provided
+        if new_status:
+            valid_statuses = [choice[0] for choice in Order._meta.get_field('status').choices]
+            
+            if new_status not in valid_statuses:
+                return Response({
+                    "error": "Invalid status value",
+                    "status": new_status,
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            new_data['status'] = new_status
+
+        # Create the event and push to kafka
+        event = {
+            "order_id": order_id,
+            "origin": {"lat": origin_latitude, "lng":   origin_longitude},
+            "destination": {"lat": order.details.longitude, "lng": order.details.longitude},
+            "demand": order.demand if hasattr(order, 'demand') else 10
+        }
+        send_to_kafka('orders.created', event)
+
+        serializer = OrderSerializer(order, data=new_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
