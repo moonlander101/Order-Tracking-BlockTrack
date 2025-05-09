@@ -161,6 +161,15 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = OrderSerializer
     lookup_field = 'order_id'
 
+
+class UserOrderListView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        user_id = self.kwargs['user_id']
+        return Order.objects.filter(user_id=user_id)
+
+
 class OrderStatusUpdateView(APIView):
     @swagger_auto_schema(
         request_body=openapi.Schema(
