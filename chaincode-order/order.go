@@ -15,7 +15,7 @@ type Order struct {
 	ID           string `json:"ID"`
 	Status       string `json:"Status"`
 	Timestamp    string `json:"Timestamp"`
-	DocumentHash string `json:"DocumentHash"`
+	// DocumentHash string `json:"DocumentHash"`
 }
 
 func (s *SmartContract) CreateOrder(ctx contractapi.TransactionContextInterface, id, status, timestamp, docHash string) error {
@@ -23,7 +23,7 @@ func (s *SmartContract) CreateOrder(ctx contractapi.TransactionContextInterface,
 		ID:           id,
 		Status:       status,
 		Timestamp:    timestamp,
-		DocumentHash: docHash,
+		// DocumentHash: docHash,
 	}
 	orderJSON, err := json.Marshal(order)
 	if err != nil {

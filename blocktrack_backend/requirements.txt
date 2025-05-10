@@ -12,3 +12,9 @@ six==1.17.0
 sqlparse==0.5.3
 urllib3==2.4.0
 varint==1.0.2
+django-filter
+psycopg2-binary
+python-dotenv
+kafka-python
+django-cors-headers
+drf_yasg
