@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from . import send_to_kafka
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -16,10 +17,15 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 
-FABRIC_BASE = "/Users/ravishan/hyperledger-fabric/fabric-samples"
-BIN_PATH = f"{FABRIC_BASE}/bin"
-TEST_NETWORK = f"{FABRIC_BASE}/test-network"
+# 🔧 Dynamically determine project base
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # → blocktrack_backend/
+FABRIC_BASE = PROJECT_ROOT / "test-network" / ".."
+FABRIC_BASE = FABRIC_BASE.resolve()
 
+BIN_PATH = FABRIC_BASE / "bin"
+CONFIG_PATH = FABRIC_BASE / "config"
+TEST_NETWORK = FABRIC_BASE / "test-network"
+SCRIPT_PATH = FABRIC_BASE / "test-network" / "scripts" / "invoke_order.sh"
 def get_fabric_env():
     env = os.environ.copy()
     env["PATH"] = f"{BIN_PATH}:" + env["PATH"]
@@ -31,30 +37,24 @@ def get_fabric_env():
     env["CORE_PEER_ADDRESS"] = "localhost:7051"
     return env
 
+
+
 class CreateOrderView(APIView):
     parser_classes = [MultiPartParser]
 
     def post(self, request):
         print("📥 Received POST request")
-
-        fabric_env = os.environ.copy()
-        fabric_env["PATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/bin:" + fabric_env["PATH"]
-        fabric_env["FABRIC_CFG_PATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/config"
-        fabric_env["CORE_PEER_LOCALMSPID"] = "Org1MSP"
-        fabric_env["CORE_PEER_TLS_ENABLED"] = "true"
-        fabric_env["CORE_PEER_TLS_ROOTCERT_FILE"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
-        fabric_env["CORE_PEER_MSPCONFIGPATH"] = "/Users/ravishan/hyperledger-fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
-        fabric_env["CORE_PEER_ADDRESS"] = "localhost:7051"
+        fabric_env = get_fabric_env()
 
         order_id = request.data.get("order_id")
         status = request.data.get("status")
         timestamp = request.data.get("timestamp")
         file = request.FILES.get("document")
 
-        print("📝 order_id:", order_id)
-        print("📝 status:", status)
-        print("📝 timestamp:", timestamp)
-        print("📎 file:", file.name if file else "No file")
+        print(f"📝 order_id: {order_id}")
+        print(f"📝 status: {status}")
+        print(f"📝 timestamp: {timestamp}")
+        print(f"📎 file: {file.name if file else 'No file'}")
 
         try:
             # Save file temporarily
@@ -68,26 +68,33 @@ class CreateOrderView(APIView):
             cid = upload_to_ipfs(tmp_path)
             print("🧬 IPFS CID:", cid)
 
-            # Prepare command
+            # Prepare chaincode invoke args
             import json
             args_json = json.dumps({
                 "function": "CreateOrder",
                 "Args": [order_id, status, timestamp, cid]
             })
-            script_path = "/Users/ravishan/hyperledger-fabric/fabric-samples/scripts/invoke_order.sh"
 
-            command = f"{script_path} '{args_json}'"
-            print("🚀 FULL PEER INVOKE COMMAND:\n", command)
+            print("🔧 Executing:", SCRIPT_PATH, args_json)
 
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
+            result = subprocess.run(
+                [str(SCRIPT_PATH), args_json],
+                capture_output=True,
+                text=True,
+                env=fabric_env
+            )
 
-            print("✅ Blockchain STDOUT:\n", result.stdout)
-            print("❌ Blockchain STDERR:\n", result.stderr)
+            print("✅ STDOUT:", result.stdout)
+            print("❌ STDERR:", result.stderr)
 
             if result.returncode != 0:
-                raise Exception("Chaincode invoke failed")
+                raise Exception(f"Invoke script failed:\n{result.stderr}")
 
-            return Response({"message": "Order created", "cid": cid, "blockchain_response": result.stdout})
+            return Response({
+                "message": "Order created",
+                "cid": cid,
+                "blockchain_response": result.stdout.strip()
+            })
 
         except Exception as e:
             return Response({
@@ -100,25 +107,27 @@ class ReadOrderView(APIView):
     def get(self, request, order_id):
         fabric_env = get_fabric_env()
 
-        command = f"""
-peer chaincode query \
---tls \
---cafile {TEST_NETWORK}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
---peerAddresses localhost:7051 \
---tlsRootCertFiles {TEST_NETWORK}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
--C mychannel -n ordercc \
--c '{{"Args":["ReadOrder", "{order_id}"]}}'
-"""
-        print("FULL COMMAND:\n", command)
+        # Safely formatted single-line command
+        command = [
+            "peer", "chaincode", "query",
+            "--tls",
+            "--cafile", str(TEST_NETWORK / "organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"),
+            "--peerAddresses", "localhost:7051",
+            "--tlsRootCertFiles", str(TEST_NETWORK / "organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"),
+            "-C", "mychannel",
+            "-n", "ordercc",
+            "-c", f'{{"Args":["ReadOrder", "{order_id}"]}}'
+        ]
 
+        print("🔍 Executing ReadOrder command for:", order_id)
 
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True, env=fabric_env)
+            result = subprocess.run(command, capture_output=True, text=True, env=fabric_env)
 
             if result.returncode != 0:
                 return Response({
                     "error": f"Failed to read order '{order_id}' from blockchain",
-                    "details": result.stderr
+                    "details": result.stderr.strip()
                 }, status=404)
 
             return Response({
@@ -131,6 +140,7 @@ peer chaincode query \
                 "error": "Unexpected error",
                 "details": str(e)
             }, status=500)
+
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
