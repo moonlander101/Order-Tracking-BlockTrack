@@ -1,5 +1,5 @@
 services:
-  db:
+  blocktrack_postgres:
     image: postgres:15
     container_name: blocktrack_postgres
     restart: always
@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: blockpass
       POSTGRES_DB: blocktrack_db
     ports:
-      - "15432:5432"
+      - "15433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
   
@@ -19,6 +19,6 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      - blocktrack_postgres
 volumes:
   postgres_data:

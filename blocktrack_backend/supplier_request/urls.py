@@ -5,7 +5,8 @@ from .views import (
     SupplierRequestStatusUpdate,
     SupplierRequestGetOrPartialUpdate,
     SupplierRequestBySupplier,
-    SupplierRequestMetrics
+    SupplierRequestMetrics,
+    SupplierRequestWithNames
 )
 
 urlpatterns = [
@@ -14,5 +15,6 @@ urlpatterns = [
     path('supplier-request/<int:request_id>/status/', SupplierRequestStatusUpdate.as_view()),
     path('supplier-request/request/<int:request_id>/', SupplierRequestGetOrPartialUpdate.as_view()),
     path('supplier-request/supplier/<int:supplier_id>/', SupplierRequestBySupplier.as_view()),
-    path('supplier-request/metrics/<int:supplier_id>/', SupplierRequestMetrics.as_view())
+    path('supplier-request/metrics/<int:supplier_id>/', SupplierRequestMetrics.as_view()),
+    path('supplier-request/details/', SupplierRequestWithNames.as_view())
 ]

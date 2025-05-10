@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+import os
+import requests
 from .models import SupplierRequest
 from .serializers import SupplierRequestSerializer
 
@@ -124,3 +125,47 @@ class SupplierRequestMetrics(APIView):
             "data": data
         }
         return Response(metrics)
+    
+
+class SupplierRequestWithNames(APIView):
+    def get(self, request):
+        supplier_requests = SupplierRequest.objects.all()
+        serializer = SupplierRequestSerializer(supplier_requests, many=True)
+        data = serializer.data
+        
+        # Get service URLs from environment variables
+        user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
+        warehouse_service_url = os.environ.get('WAREHOUSE_SERVICE_URL', 'http://127.0.0.1:8001')
+        print(warehouse_service_url)
+        # Enrich data with supplier names and product names
+        for item in data:
+            # Fetch supplier name
+            try:
+                supplier_id = item.get('supplier_id')
+                supplier_response = requests.get(f"{user_service_url}/api/v1/core/suppliers/{supplier_id}/info/")
+                if supplier_response.status_code == 200:
+                    supplier_data = supplier_response.json()
+                    supplier_user_data = supplier_data.get('user')
+                    print(supplier_data)
+                    item['supplier_name'] = supplier_user_data.get('first_name', 'Unknown') + " " + supplier_user_data.get('last_name', 'Unknown')
+                else:
+                    item['supplier_name'] = 'Unknown'
+            except Exception as e:
+                item['supplier_name'] = 'Error fetching supplier'
+                print(f"Error fetching supplier info: {str(e)}")
+            
+            # Fetch product name
+            try:
+                product_id = item.get('product_id')
+                product_response = requests.get(f"{warehouse_service_url}/api/product/products/{product_id}/")
+                
+                if product_response.status_code == 200:
+                    product_data = product_response.json()
+                    item['product_name'] = product_data.get('product_name', 'Unknown')
+                else:
+                    item['product_name'] = 'Unknown'
+            except Exception as e:
+                item['product_name'] = 'Error fetching product'
+                print(f"Error fetching product info: {str(e)}")
+                
+        return Response(data)
