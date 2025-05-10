@@ -60,11 +60,55 @@ class SupplierRequestListCreate(APIView):
         return Response(serializer.data)
 
 
+
 class SupplierRequestBySupplier(APIView):
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'status', openapi.IN_QUERY,
+                description="Optional list of statuses to filter by. Can be a list of statuses like ?status=received&status=accepted.",
+                type=openapi.TYPE_STRING,
+                collectionFormat='multi',  # Allows multiple occurrences of the 'status' parameter
+                required=False
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="List of supplier requests with enriched product data",
+                schema=SupplierRequestSerializer(many=True)
+            ),
+            400: "Bad Request",
+            500: "Internal Server Error"
+        }
+    )
     def get(self, request, supplier_id):
-        requests = SupplierRequest.objects.filter(supplier_id=supplier_id)
-        serializer = SupplierRequestSerializer(requests, many=True)
-        return Response(serializer.data)
+        # Extract status from query parameter
+        status = request.query_params.getlist('status')
+
+        # Filter supplier requests by supplier_id and status
+        reqs = SupplierRequest.objects.filter(supplier_id=supplier_id)
+        if status:
+            reqs = reqs.filter(status__in=status)
+
+        serializer = SupplierRequestSerializer(reqs, many=True)
+        data = serializer.data
+
+        # Enrich data with product information
+        for item in data:
+            try:
+                product_id = item.get('product_id')
+                product_response = requests.get(f"{warehouse_service_url}/api/product/products/{product_id}/")
+                if product_response.status_code == 200:
+                    product_data = product_response.json()
+                    item['product_name'] = product_data.get('product_name', 'Unknown')
+                else:
+                    item['product_name'] = 'Unknown'
+            except Exception as e:
+                item['product_name'] = 'Unknown'
+                print(f"Error fetching product info: {str(e)}")
+
+        return Response(data)
 
 class SupplierRequestByWarehouse(APIView):
     def get(self, request, warehouse_id):

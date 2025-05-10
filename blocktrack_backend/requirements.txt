@@ -16,3 +16,5 @@ django-filter
 psycopg2-binary
 python-dotenv
 kafka-python
+django-cors-headers
+drf_yasg
