@@ -25,7 +25,7 @@ FABRIC_BASE = FABRIC_BASE.resolve()
 BIN_PATH = FABRIC_BASE / "bin"
 CONFIG_PATH = FABRIC_BASE / "config"
 TEST_NETWORK = FABRIC_BASE / "test-network"
-SCRIPT_PATH = FABRIC_BASE / "test-network" / "scripts" / "invoke_order.sh"
+SCRIPT_PATH = FABRIC_BASE / "test-network" / "scripts" / "invoke_the_chaincode.sh"
 def get_fabric_env():
     env = os.environ.copy()
     env["PATH"] = f"{BIN_PATH}:" + env["PATH"]
@@ -37,7 +37,35 @@ def get_fabric_env():
     env["CORE_PEER_ADDRESS"] = "localhost:7051"
     return env
 
+def invoke_create_order(order_id, timestamp, status, cid = ""):
+    fabric_env = get_fabric_env()
+    
+    import json
+    args_json = json.dumps({
+        "function": "CreateOrder",
+        "Args": [order_id, status, timestamp, cid]
+    })
 
+    print("🔧 Executing:", SCRIPT_PATH, args_json)
+
+    result = subprocess.run(
+        [str(SCRIPT_PATH), args_json],
+        capture_output=True,
+        text=True,
+        env=fabric_env
+    )
+
+    print("✅ STDOUT:", result.stdout)
+    print("❌ STDERR:", result.stderr)
+
+    if result.returncode != 0:
+        raise Exception(f"Invoke script failed:\n{result.stderr}")
+
+    return Response({
+        "message": "Order created",
+        "cid": cid,
+        "blockchain_response": result.stdout.strip()
+    })
 
 class CreateOrderView(APIView):
     parser_classes = [MultiPartParser]
@@ -149,6 +177,46 @@ class OrderListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status']
 
+    def create(self, request, *args, **kwargs):
+        # Standard serializer validation
+        print(request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Set default status if not provided
+        if 'status' not in serializer.validated_data:
+            serializer.validated_data['status'] = 'Pending'
+        
+        # Save the order to database
+        order = serializer.save()
+        
+        # Register on blockchain
+        try:
+            # Format timestamp
+            timestamp = order.created_at.isoformat()
+            
+            # Call the blockchain function with order data
+            invoke_create_order(
+                order_id=str(order.order_id),
+                timestamp=timestamp,
+                status=order.status,
+                cid=""  # Empty CID since we don't have a file
+            )
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            
+        except Exception as e:
+            # Log the error but keep the order in database
+            print(f"Blockchain registration failed: {str(e)}")
+            
+            headers = self.get_success_headers(serializer.data)
+            return Response({
+                "warning": "Order created in database but blockchain registration failed",
+                "details": str(e),
+                "order": serializer.data
+            }, status=status.HTTP_201_CREATED, headers=headers)
+
 class OrderByWarehouse(APIView):
     @swagger_auto_schema(
         manual_parameters=[
@@ -159,15 +227,20 @@ class OrderByWarehouse(APIView):
         ]
     )
     def get(self, request, warehouse_id):
-        queryset = Order.objects.filter(details__warehouse_id=warehouse_id)
+        try:
+            queryset = Order.objects.filter(details__warehouse_id=warehouse_id)
 
-        minimal = request.GET.get('minimal', False)
+            minimal = request.GET.get('minimal', False)
 
-        if (eval(minimal[0].upper() + minimal[1:])):
-            serializer = MinimalOrderSerializer(queryset, many=True)
-        else:
-            serializer = OrderSerializer(queryset, many=True)
-        return Response(serializer.data)
+            if (eval(minimal[0].upper() + minimal[1:])):
+                serializer = MinimalOrderSerializer(queryset, many=True)
+            else:
+                serializer = OrderSerializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 class OrderDetailView(generics.RetrieveUpdateAPIView):
     queryset = Order.objects.all()
@@ -207,42 +280,46 @@ class OrderStatusUpdateView(APIView):
     )
     def patch(self, request, order_id):
         try:
-            order = Order.objects.get(order_id=order_id)
-        except Order.DoesNotExist:
-            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                order = Order.objects.get(order_id=order_id)
+            except Order.DoesNotExist:
+                return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        new_status = request.data.get('status')
-        warehouse_location = request.data.get('warehouse_location')
-        
-        new_data = {}
-
-        if warehouse_location:
-            origin_longitude = warehouse_location.get('longitude')
-            origin_latitude = warehouse_location.get('latitude')
-        
-        # Validate status against model choices if provided
-        if new_status:
-            valid_statuses = [choice[0] for choice in Order._meta.get_field('status').choices]
+            new_status = request.data.get('status')
+            warehouse_location = request.data.get('warehouse_location')
             
-            if new_status not in valid_statuses:
-                return Response({
-                    "error": "Invalid status value",
-                    "status": new_status,
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            new_data['status'] = new_status
+            new_data = {}
 
-        # Create the event and push to kafka
-        event = {
-            "order_id": order_id,
-            "origin": {"lat": origin_latitude, "lng":   origin_longitude},
-            "destination": {"lat": order.details.longitude, "lng": order.details.longitude},
-            "demand": 10
-        }
-        send_to_kafka('orders.created', event)
-        
-        serializer = OrderSerializer(order, data=new_data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if warehouse_location:
+                origin_longitude = warehouse_location.get('longitude')
+                origin_latitude = warehouse_location.get('latitude')
+            
+            # Validate status against model choices if provided
+            if new_status:
+                valid_statuses = [choice[0] for choice in Order._meta.get_field('status').choices]
+                
+                if new_status not in valid_statuses:
+                    return Response({
+                        "error": "Invalid status value",
+                        "status": new_status,
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                new_data['status'] = new_status
+
+            # Create the event and push to kafka
+            event = {
+                "order_id": order_id,
+                "origin": {"lat": origin_latitude, "lng":   origin_longitude},
+                "destination": {"lat": order.details.longitude, "lng": order.details.longitude},
+                "demand": 10
+            }
+            send_to_kafka('orders.created', event)
+            
+            serializer = OrderSerializer(order, data=new_data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+                
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

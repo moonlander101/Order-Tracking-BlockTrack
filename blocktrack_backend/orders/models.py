@@ -11,8 +11,8 @@ class Order(models.Model):
         ('Delivered', 'Delivered'),
         ('Cancelled', 'Cancelled'),
     ])
-    blockchain_tx_id = models.CharField(max_length=255)
-    ipfs_hash = models.CharField(max_length=255)
+    blockchain_tx_id = models.CharField(max_length=255, blank=True, null=True)
+    ipfs_hash = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -29,7 +29,7 @@ class OrderDetails(models.Model):
         return f"Order {self.order.order_id} - Details"
 
 class OrderProduct(models.Model):
-    order = models.ForeignKey(Order, related_name='order_products', on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, related_name='products', on_delete=models.CASCADE)
     product_id = models.IntegerField()
     count = models.IntegerField()
     unit_price = models.FloatField()
