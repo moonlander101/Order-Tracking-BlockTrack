@@ -132,18 +132,35 @@ class SupplierRequestWithNames(APIView):
         manual_parameters=[
             openapi.Parameter(
                 'status', openapi.IN_QUERY,
-                description="Optional status to filter supplier requests",
+                description="Optional status to filter supplier requests. Can be a single status or a list of statuses.",
                 type=openapi.TYPE_STRING
             )
         ],
-        responses={200: SupplierRequestSerializer(many=True)}
+        responses={
+            200: openapi.Response(
+                description="List of supplier requests with enriched data",
+                schema=SupplierRequestSerializer(many=True)
+            ),
+            400: "Bad Request",
+            500: "Internal Server Error"
+        }
     )
     def get(self, request, warehouse_id):
-        status = request.query_params.get('status', None)
-
-        if status:
-            supplier_requests = SupplierRequest.objects.filter(warehouse_id=warehouse_id, status=status)
-        else:
+        status_param = request.query_params.get('status', None)
+    
+        try:
+            # Base query filtering by warehouse
+            supplier_requests = SupplierRequest.objects.filter(warehouse_id=warehouse_id)
+            
+            # Apply status filtering if provided
+            if status_param:
+                # Split comma-separated statuses into a list
+                status_list = [s.strip() for s in status_param.split(',')]
+                supplier_requests = supplier_requests.filter(status__in=status_list)
+                
+        except Exception as e:
+            print(f"Error filtering requests: {e}")
+            # Fallback to all requests for this warehouse
             supplier_requests = SupplierRequest.objects.filter(warehouse_id=warehouse_id)
 
         serializer = SupplierRequestSerializer(supplier_requests, many=True)
