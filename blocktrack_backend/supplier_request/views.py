@@ -128,8 +128,24 @@ class SupplierRequestMetrics(APIView):
     
 
 class SupplierRequestWithNames(APIView):
-    def get(self, request):
-        supplier_requests = SupplierRequest.objects.all()
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'status', openapi.IN_QUERY,
+                description="Optional status to filter supplier requests",
+                type=openapi.TYPE_STRING
+            )
+        ],
+        responses={200: SupplierRequestSerializer(many=True)}
+    )
+    def get(self, request, warehouse_id):
+        status = request.query_params.get('status', None)
+
+        if status:
+            supplier_requests = SupplierRequest.objects.filter(warehouse_id=warehouse_id, status=status)
+        else:
+            supplier_requests = SupplierRequest.objects.filter(warehouse_id=warehouse_id)
+
         serializer = SupplierRequestSerializer(supplier_requests, many=True)
         data = serializer.data
         
@@ -137,9 +153,12 @@ class SupplierRequestWithNames(APIView):
         user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
         warehouse_service_url = os.environ.get('WAREHOUSE_SERVICE_URL', 'http://127.0.0.1:8001')
         print(warehouse_service_url)
+    
+
         # Enrich data with supplier names and product names
         for item in data:
             # Fetch supplier name
+
             try:
                 supplier_id = item.get('supplier_id')
                 supplier_response = requests.get(f"{user_service_url}/api/v1/core/suppliers/{supplier_id}/info/")
