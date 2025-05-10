@@ -19,7 +19,7 @@ class SupplierRequest(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
     received_at = models.DateTimeField(null=True, blank=True)
     warehouse_id = models.IntegerField()
-    unit_price = models.FloatField()
+    unit_price = models.FloatField(blank=True, null=True)
     quality = models.IntegerField(validators=[
         MinValueValidator(0),
         MaxValueValidator(10)

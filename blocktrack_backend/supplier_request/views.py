@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,30 +9,51 @@ import requests
 from .models import SupplierRequest
 from .serializers import SupplierRequestSerializer
 
+# Get service URLs from environment variables
+user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
+warehouse_service_url = os.environ.get('WAREHOUSE_SERVICE_URL', 'http://127.0.0.1:8001')
 
 class SupplierRequestListCreate(APIView):
+    def get_unit_price(self, product_id, supplier_id):
+        response = requests.get(f"{warehouse_service_url}/api/product/supplier-products/")
+        
+        if response.status_code == 200:
+            supplier_products = response.json()
+
+            # Find the matching product for this supplier
+            for item in supplier_products:
+                if item['product'] == product_id and item['supplier_id'] == supplier_id:
+                    return Decimal(item['supplier_price'])
+            
+            # If no match found, raise error
+            raise Exception(f"No price found for product {product_id} from supplier {supplier_id}")
+        else:
+            print(f"Failed to get supplier products: {response.status_code}")
+            return None
+
     @swagger_auto_schema(
         request_body=SupplierRequestSerializer,
         responses={201: SupplierRequestSerializer()}
     )
     def post(self, request):
-        serializer = SupplierRequestSerializer(data=request.data)
-        if serializer.is_valid():
-            # custom logic here
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = SupplierRequestSerializer(data=request.data)
+            if serializer.is_valid():
+                data = serializer.validated_data
 
-    # @swagger_auto_schema(
-    #     manual_parameters=[
-    #         openapi.Parameter(
-    #             'request_id', openapi.IN_QUERY,
-    #             description="Optional request_id to filter",
-    #             type=openapi.TYPE_STRING
-    #         )
-    #     ],
-    #     responses={200: SupplierRequestSerializer(many=True)}
-    # )
+                print("data given by this is", data["product_id"])
+                type
+                data['unit_price'] = self.get_unit_price(data["product_id"],data["supplier_id"])
+                instance = SupplierRequest.objects.create(**data)
+                return Response(SupplierRequestSerializer(instance).data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "error": "Failed to create supplier request",
+                "details": str(e)
+            }, status=500)
+        
+    
     def get(self, request):
         requests = SupplierRequest.objects.all()
         serializer = SupplierRequestSerializer(requests, many=True)
@@ -165,12 +187,6 @@ class SupplierRequestWithNames(APIView):
 
         serializer = SupplierRequestSerializer(supplier_requests, many=True)
         data = serializer.data
-        
-        # Get service URLs from environment variables
-        user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
-        warehouse_service_url = os.environ.get('WAREHOUSE_SERVICE_URL', 'http://127.0.0.1:8001')
-        print(warehouse_service_url)
-    
 
         # Enrich data with supplier names and product names
         for item in data:
