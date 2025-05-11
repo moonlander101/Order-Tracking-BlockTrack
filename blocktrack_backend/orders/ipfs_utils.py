@@ -1,7 +1,7 @@
 import requests
 
 IPFS_API = "http://127.0.0.1:5001/api/v0"
-IPFS_GATEWAY = "https://ipfs.io/ipfs"
+IPFS_GATEWAY = "http://127.0.0.1:8989/ipfs"
 
 def upload_to_ipfs(file_path):
     with open(file_path, 'rb') as file:
