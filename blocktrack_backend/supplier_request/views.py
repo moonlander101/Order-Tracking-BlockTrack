@@ -1,4 +1,5 @@
 from decimal import Decimal
+from orders.blockchain_utils import invoke_create_order
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +9,7 @@ import os
 import requests
 from .models import SupplierRequest
 from .serializers import SupplierRequestSerializer
+from datetime import datetime, timezone
 
 # Get service URLs from environment variables
 user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
@@ -43,8 +45,18 @@ class SupplierRequestListCreate(APIView):
 
                 print("data given by this is", data["product_id"])
                 type
-                data['unit_price'] = self.get_unit_price(data["product_id"],data["supplier_id"])
+                # data['unit_price'] = self.get_unit_price(data["product_id"],data["supplier_id"])
+                data['unit_price'] = 69
                 instance = SupplierRequest.objects.create(**data)
+
+                invoke_create_order(
+                    order_id=instance.request_id,
+                    timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    status="Pending",
+                    order_type="SR", 
+                    documentHashes=[]
+                )
+
                 return Response(SupplierRequestSerializer(instance).data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
