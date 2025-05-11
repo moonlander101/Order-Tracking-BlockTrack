@@ -6,16 +6,10 @@ set -e
 # Parse input JSON
 ORDER_JSON=$1
 ORDER_ID=$(echo "$ORDER_JSON" | jq -r '.Args[0]')
-STATUS=$(echo "$ORDER_JSON" | jq -r '.Args[1]')
-TIMESTAMP=$(echo "$ORDER_JSON" | jq -r '.Args[2]')
-ORDER_TYPE=$(echo "$ORDER_JSON" | jq -r '.Args[3]')
-DOC_HASHES_JSON=$(echo "$ORDER_JSON" | jq '.Args[4]')
+NEWDOCHASHS=$(echo "$ORDER_JSON" | jq '.Args[1]')
 
 echo "📦 Order ID   : $ORDER_ID"
-echo "📄 Status     : $STATUS"
-echo "⏰ Timestamp  : $TIMESTAMP"
-echo "📂 Type       : $ORDER_TYPE"
-echo "🧾 Documents  : $DOC_HASHES_JSON"
+echo "🧾 New Doc Hash  : $NEWDOCHASHS"
 
 # Set paths
 BASE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -46,7 +40,7 @@ RESULT=$(peer chaincode invoke \
   --tlsRootCertFiles "$ORG_PATH/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
   --peerAddresses localhost:9051 \
   --tlsRootCertFiles "$ORG_PATH/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-  -c "{\"function\":\"CreateOrder\",\"Args\":[\"$ORDER_ID\",\"$STATUS\",\"$TIMESTAMP\",\"$ORDER_TYPE\",$DOC_HASHES_JSON]}"
+  -c "{\"function\":\"AddDocumentsToOrder\",\"Args\":[\"$ORDER_ID\",$NEWDOCHASHS]}"
 )
 
 STATUS=$?
