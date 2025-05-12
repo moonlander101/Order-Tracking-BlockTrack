@@ -9,7 +9,8 @@ import os
 import requests
 from .models import SupplierRequest
 from .serializers import SupplierRequestSerializer
-from datetime import datetime, timezone
+# from datetime import datetime, timezone
+from django.utils import timezone
 
 # Get service URLs from environment variables
 user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
@@ -51,7 +52,7 @@ class SupplierRequestListCreate(APIView):
 
                 invoke_create_order(
                     order_id=instance.request_id,
-                    timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    timestamp=instance.created_at,
                     status="Pending",
                     order_type="SR", 
                     documentHashes=[]
@@ -144,6 +145,9 @@ class SupplierRequestStatusUpdate(APIView):
         
         invoke_update_order_status(request_id, request.data.get("status"))
 
+        if req.status == "received" and not req.received_at:
+            req.received_at = timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+
         req.save()
         return Response(SupplierRequestSerializer(req).data)
 
@@ -165,8 +169,13 @@ class SupplierRequestGetOrPartialUpdate(APIView):
 
         serializer = SupplierRequestSerializer(req, data=request.data, partial=True)
         if serializer.is_valid():
-            if (request.data.get("status")):
+            new_status = request.data.get("status")
+
+            if (new_status):
                 invoke_update_order_status(request_id, request.data.get("status"))
+
+            if new_status == "received" and not req.received_at:
+                req.received_at = timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
             serializer.save()
             return Response(serializer.data)
@@ -183,7 +192,8 @@ class SupplierRequestGetOrPartialUpdate(APIView):
 class SupplierRequestMetrics(APIView):
     def get(self, request, supplier_id):
         data = SupplierRequest.objects.filter(supplier_id=supplier_id).values(
-            'is_defective', 'quality', 'count', 'unit_price', 'status', 'expected_delivery_date', 'received_at'
+            'is_defective', 'quality', 'count', 'unit_price', 'status', 
+            'expected_delivery_date', 'received_at', 'created_at'
         )
 
         total = len(data)
@@ -192,9 +202,27 @@ class SupplierRequestMetrics(APIView):
         received_count = sum(1 for d in data if d.get('status') == "received")
         q_sum = sum(d.get('quality', 0) or 0 for d in data)
 
-        # Calculate on-time delivery rate
         on_time_count = sum(
             1 for d in data if d.get('received_at') and d.get('expected_delivery_date') and d['received_at'] <= d['expected_delivery_date']
+        )
+
+        responsiveness_values = []
+        for d in data:
+            received_at = d.get('received_at')
+            created_at = d.get('created_at')
+            expected_delivery_date = d.get('expected_delivery_date')
+            if received_at and created_at and expected_delivery_date:
+                expected_duration = expected_delivery_date - created_at
+                actual_duration = received_at - created_at
+                if expected_duration.total_seconds() > 0:
+                    responsiveness_values.append(actual_duration / expected_duration)
+
+        accuracy_count = sum(
+            1 for d in data if (
+                d.get('status') == 'received' and 
+                not d.get('is_defective') and 
+                (d.get('quality') or 0) >= 8
+            )
         )
 
         metrics = {
@@ -206,8 +234,11 @@ class SupplierRequestMetrics(APIView):
             "quality_score": q_sum / total if total > 0 else 0,
             "on_time_delivery_rate": on_time_count / total if total > 0 else 0,
             "fill_rate": received_count / total if total > 0 else 0,
+            "avg_responsiveness": sum(responsiveness_values) / len(responsiveness_values) if responsiveness_values else None,
+            "order_accuracy_rate": accuracy_count / total if total > 0 else 0,
             "data": data
         }
+
         return Response(metrics)
     
 

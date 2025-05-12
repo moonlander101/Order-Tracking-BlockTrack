@@ -5,4 +5,4 @@ class SupplierRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupplierRequest
         fields = '__all__'
-        read_only_fields = ['unit_price']
+        read_only_fields = ['unit_price', 'recieved_at', 'created_at']
