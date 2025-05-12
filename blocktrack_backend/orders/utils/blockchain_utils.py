@@ -131,11 +131,11 @@ def invoke_read_order(order_id):
             "details": str(e)
         })
 
-def invoke_update_order_status(order_id, status):
+def invoke_update_order_status(order_id, status, timestamp):
     fabric_env = get_fabric_env()
     
     args_json = json.dumps({
-        "Args": [order_id, status]
+        "Args": [order_id, status, timestamp]
     })
 
     print("🔧 Executing:", UPDATE_DOCS_SCRIPT_PATH, args_json)

@@ -2,7 +2,7 @@ from django.shortcuts import render
 import json
 from pathlib import Path
 
-from orders.blockchain_utils import invoke_read_order, invoke_add_docs
+from blocktrack_backend.orders.utils.blockchain_utils import invoke_read_order, invoke_add_docs
 # from . import send_to_kafka
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,7 +13,7 @@ from orders.models import Order
 import subprocess
 import tempfile
 import os
-from orders.ipfs_utils import get_ipfs_url, upload_to_ipfs
+from orders.utils.ipfs_utils import get_ipfs_url, upload_to_ipfs
 from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_yasg.utils import swagger_auto_schema
