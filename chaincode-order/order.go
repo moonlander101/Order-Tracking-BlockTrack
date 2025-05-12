@@ -141,6 +141,30 @@ func (s *SmartContract) DeleteDocumentsFromOrder(ctx contractapi.TransactionCont
 	return ctx.GetStub().PutState(id, updatedOrderJSON)
 }
 
+func (s *SmartContract) UpdateOrderStatus(ctx contractapi.TransactionContextInterface, id string, newStatus string) error {
+	orderJSON, err := ctx.GetStub().GetState(id)
+	if err != nil {
+		return fmt.Errorf("failed to read order: %v", err)
+	}
+	if orderJSON == nil {
+		return fmt.Errorf("order %s not found", id)
+	}
+
+	var order Order
+	if err := json.Unmarshal(orderJSON, &order); err != nil {
+		return fmt.Errorf("failed to unmarshal order: %v", err)
+	}
+
+	order.Status = newStatus
+
+	updatedOrderJSON, err := json.Marshal(order)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(id, updatedOrderJSON)
+}
+
 func (s *SmartContract) ReadOrder(ctx contractapi.TransactionContextInterface, id string) (*Order, error) {
 	orderJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
