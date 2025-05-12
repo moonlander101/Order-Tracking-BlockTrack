@@ -7,9 +7,11 @@ set -e
 ORDER_JSON=$1
 ORDER_ID=$(echo "$ORDER_JSON" | jq -r '.Args[0]')
 STATUS=$(echo "$ORDER_JSON" | jq -r '.Args[1]')
+TIMESTAMP=$(echo "$ORDER_JSON" | jq -r '.Args[2]')
 
 echo "📦 Order ID   : $ORDER_ID"
 echo "📄 New Status : $STATUS"
+echo " Timestamp : $TIMESTAMP"
 
 # Set paths
 BASE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
@@ -40,7 +42,7 @@ RESULT=$(peer chaincode invoke \
   --tlsRootCertFiles "$ORG_PATH/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
   --peerAddresses localhost:9051 \
   --tlsRootCertFiles "$ORG_PATH/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
-  -c "{\"function\":\"UpdateOrderStatus\",\"Args\":[\"$ORDER_ID\",\"$STATUS\"]}"
+  -c "{\"function\":\"UpdateOrderStatus\",\"Args\":[\"$ORDER_ID\",\"$STATUS\", \"$TIMESTAMP\"]}"
 )
 
 STATUS=$?

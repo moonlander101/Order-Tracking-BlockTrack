@@ -141,7 +141,7 @@ func (s *SmartContract) DeleteDocumentsFromOrder(ctx contractapi.TransactionCont
 	return ctx.GetStub().PutState(id, updatedOrderJSON)
 }
 
-func (s *SmartContract) UpdateOrderStatus(ctx contractapi.TransactionContextInterface, id string, newStatus string) error {
+func (s *SmartContract) UpdateOrderStatus(ctx contractapi.TransactionContextInterface, id string, newStatus string, newTimestamp string) error {
 	orderJSON, err := ctx.GetStub().GetState(id)
 	if err != nil {
 		return fmt.Errorf("failed to read order: %v", err)
@@ -156,6 +156,7 @@ func (s *SmartContract) UpdateOrderStatus(ctx contractapi.TransactionContextInte
 	}
 
 	order.Status = newStatus
+	order.Timestamp = newTimestamp
 
 	updatedOrderJSON, err := json.Marshal(order)
 	if err != nil {
