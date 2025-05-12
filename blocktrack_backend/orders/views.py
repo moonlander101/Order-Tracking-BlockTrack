@@ -183,9 +183,10 @@ class OrderStatusUpdateView(APIView):
             event = {
                 "order_id": order_id,
                 "origin": {"lat": origin_latitude, "lng":   origin_longitude},
-                "destination": {"lat": order.details.longitude, "lng": order.details.longitude},
+                "destination": {"lat": order.details.latitude, "lng": order.details.longitude},
                 "demand": 10
             }
+            print("Sending to kafka")
             send_to_kafka('orders.created', event)
             
             invoke_update_order_status(order_id, request.data.get("status"))
