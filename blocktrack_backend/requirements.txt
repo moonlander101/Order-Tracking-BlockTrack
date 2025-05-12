@@ -18,3 +18,4 @@ python-dotenv
 kafka-python
 django-cors-headers
 drf_yasg
+confluent-kafka
