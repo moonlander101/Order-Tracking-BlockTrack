@@ -5,11 +5,11 @@ class Order(models.Model):
     # product = models.CharField(max_length=255)
     user_id = models.IntegerField()
     status = models.CharField(max_length=50, choices=[
-        ('Pending', 'Pending'),
-        ('Accepted', 'Accepted'),
-        ('Shipped', 'Shipped'),
-        ('Delivered', 'Delivered'),
-        ('Cancelled', 'Cancelled'),
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('cancelled', 'Cancelled'),
     ])
     blockchain_tx_id = models.CharField(max_length=255, blank=True, null=True)
     ipfs_hash = models.CharField(max_length=255, blank=True, null=True)

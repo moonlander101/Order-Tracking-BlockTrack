@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from .blockchain_utils import CREATE_ORDER_SCRIPT_PATH, TEST_NETWORK, get_fabric_env, invoke_create_order, invoke_read_order, invoke_update_order_status
+from .utils.blockchain_utils import CREATE_ORDER_SCRIPT_PATH, TEST_NETWORK, get_fabric_env, invoke_create_order, invoke_read_order, invoke_update_order_status
 from . import send_to_kafka
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,12 +12,12 @@ from .serializers import MinimalOrderSerializer, OrderSerializer
 import subprocess
 import tempfile
 import os
-from .ipfs_utils import get_ipfs_url, upload_to_ipfs
+from .utils.ipfs_utils import get_ipfs_url, upload_to_ipfs
 from django_filters.rest_framework import DjangoFilterBackend
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+from django.utils import timezone
 
 class ReadOrderView(APIView):
     def get(self, request):
@@ -50,7 +50,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
         
         # Set default status if not provided
         if 'status' not in serializer.validated_data:
-            serializer.validated_data['status'] = 'Pending'
+            serializer.validated_data['status'] = 'pending'
         
         # Save the order to database
         order = serializer.save()
@@ -116,8 +116,30 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
     def partial_update(self, request, *args, **kwargs):
         if 'status' in request.data:
             order_id = kwargs.get('order_id')
+            order = Order.objects.get(order_id=order_id)
             status = request.data['status']
-            invoke_update_order_status(order_id, status)
+            invoke_update_order_status(order_id, status, timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+
+            if (status == "accepted"):
+                #TODO: Where to fetch this location from
+                warehouse_location = request.data.get('warehouse_location')
+                if(not warehouse_location):
+                    return Response(
+                        {
+                            "error" : "Warehouse location must be provided for status to switch to 'accepted'"
+                        },
+                        status = 400
+                    )
+
+                event = {
+                    "order_id": order_id,
+                    "origin": {"lat": warehouse_location.get("latitude"), "lng":   warehouse_location.get("longitude")},
+                    "destination": {"lat": order.details.latitude, "lng": order.details.longitude},
+                    "demand": 10
+                }
+                send_to_kafka('orders.created', event)
+            
         return super().partial_update(request, *args, **kwargs)
 
 
@@ -159,7 +181,16 @@ class OrderStatusUpdateView(APIView):
                 return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
             new_status = request.data.get('status')
+            
+            #TODO: Where to fetch this location from
             warehouse_location = request.data.get('warehouse_location')
+            if(not warehouse_location):
+                return Response(
+                    {
+                        "error" : "Warehouse location must be provided for status to switch to 'accepted'"
+                    },
+                    status = 400
+                )
             
             new_data = {}
 
@@ -180,16 +211,17 @@ class OrderStatusUpdateView(APIView):
                 new_data['status'] = new_status
 
             # Create the event and push to kafka
-            event = {
-                "order_id": order_id,
-                "origin": {"lat": origin_latitude, "lng":   origin_longitude},
-                "destination": {"lat": order.details.latitude, "lng": order.details.longitude},
-                "demand": 10
-            }
-            print("Sending to kafka")
-            send_to_kafka('orders.created', event)
+            if new_status == "accepted":
+                event = {
+                    "order_id": order_id,
+                    "origin": {"lat": origin_latitude, "lng":   origin_longitude},
+                    "destination": {"lat": order.details.latitude, "lng": order.details.longitude},
+                    "demand": 10
+                }
+                print("Sending to kafka")
+                send_to_kafka('orders.created', event)
             
-            invoke_update_order_status(order_id, request.data.get("status"))
+            invoke_update_order_status(order_id, request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
             serializer = OrderSerializer(order, data=new_data, partial=True)
             if serializer.is_valid():
