@@ -1,5 +1,5 @@
 from decimal import Decimal
-from orders.blockchain_utils import invoke_create_order
+from orders.blockchain_utils import invoke_create_order, invoke_update_order_status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -141,6 +141,9 @@ class SupplierRequestStatusUpdate(APIView):
 
         # custom logic here
         req.status = request.data['status']
+        
+        invoke_update_order_status(request_id, request.data.get("status"))
+
         req.save()
         return Response(SupplierRequestSerializer(req).data)
 
@@ -162,6 +165,9 @@ class SupplierRequestGetOrPartialUpdate(APIView):
 
         serializer = SupplierRequestSerializer(req, data=request.data, partial=True)
         if serializer.is_valid():
+            if (request.data.get("status")):
+                invoke_update_order_status(request_id, request.data.get("status"))
+
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
