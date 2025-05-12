@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from confluent_kafka import Consumer, KafkaException
+from orders.utils import update_order_status
 
 class Command(BaseCommand):
     help = 'Consume messages from Kafka'
@@ -22,7 +23,10 @@ class Command(BaseCommand):
                         continue
                     else:
                         raise KafkaException(msg.error())
-                print('Received message: {}'.format(msg.value().decode('utf-8')))
+                order_id = msg.get('order_id')
+                timestamp = msg.get('timestamp')
+
+                update_order_status(order_id, "delivered", timestamp)
         except KeyboardInterrupt:
             pass
         finally:
