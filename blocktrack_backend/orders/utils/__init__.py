@@ -1,4 +1,4 @@
-from models import Order
+from orders.models import Order
 from .blockchain_utils import invoke_update_order_status
 
 def update_order_status(order_id, status,timestamp, func=lambda: None):

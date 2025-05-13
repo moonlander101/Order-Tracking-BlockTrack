@@ -2,7 +2,7 @@ from django.shortcuts import render
 import json
 from pathlib import Path
 
-from blocktrack_backend.orders.utils.blockchain_utils import invoke_read_order, invoke_add_docs
+from orders.utils.blockchain_utils import invoke_read_order, invoke_add_docs
 # from . import send_to_kafka
 from rest_framework.views import APIView
 from rest_framework.response import Response
