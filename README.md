@@ -7,7 +7,7 @@ It includes:
 * **Hyperledger Fabric** (blockchain ledger)
 * **IPFS** (for decentralized file storage)
 * **Django REST Framework** (backend API)
-* **Angular** (frontend for order interaction)
+<!-- * **Angular** (frontend for order interaction) -->
 
 ---
 
@@ -26,11 +26,16 @@ blocktrack/
 ├── chaincode-order/           # Go chaincode
 │   └── order.go
 ├── scripts/                   # Shell automation scripts
-│   └── invoke_order.sh
+│   └── setup_the_chaincode.sh
+│   └── invoke_the_chaincode.sh
+│   └── invoke_addDocs.sh
+│   └── invoke_updateDocs.sh
+│   └── invoke_deleteDocs.sh
+│   └── invoke_updateOrderStatus.sh
 └── README.md
 ```
 
----
+<!-- ---
 
 ## ⚙️ Prerequisites
 
@@ -43,7 +48,7 @@ Before running this project, ensure you have:
 * ✅ Go (for chaincode)
 * ✅ Node.js + Angular CLI (for frontend)
 
----
+--- -->
 
 ## 🚀 How to Run the Project
 
@@ -60,14 +65,14 @@ From your Fabric samples directory:
 ```bash
 curl -sSL https://bit.ly/2ysbOFE | bash -s -- -d -s
 cd ./test-network
-
 ```
 
 > ✅ Note: Adjust `-ccp` if needed to point to your `chaincode-order` directory.
 >
-> ## ⚙️ One-Click Network Setup (Full Automation)
 
-To make setup easier, we’ve included a shell script: `scripts/setup_chaincode.sh`
+## ⚙️ One-Click Network Setup (Full Automation)
+
+To make setup easier, we’ve included a shell script: `scripts/setup_the_chaincode.sh`
 
 ### 🔧 What It Does:
 - Brings down any existing Fabric network
@@ -76,49 +81,49 @@ To make setup easier, we’ve included a shell script: `scripts/setup_chaincode.
 - Installs it on both peers
 - Approves chaincode definition for both orgs
 - Commits chaincode
+- Starts the IPFS container
 - Ready for backend integration!
 
 ---
 
 ### 🚀 To Run It:
 ```bash
-chmod +x scripts/setup_chaincode.sh
+chmod +x scripts/setup_the_chaincode.sh
 ./scripts/setup_chaincode.sh
-🔁 Make sure you're inside the test-network directory before running the script.
-
----
-
-### 3. Start IPFS
-Run either:
-```bash
-# Option A
-Open IPFS Desktop
-
-# Option B
-ipfs daemon
+# 🔁 Make sure you're inside the test-network directory before running the script.
 ```
 
 ---
 
-### 4. Run the Django Backend
+### 3. Run the Django Backend
 ```bash
 cd blocktrack_backend
 python3 -m venv env
-source env/bin/activate
+```
+```bash
+# if linux/ MAC
+source ./env/bin/activate
+# if windows
+./env/scripts/activate
+```
+```bash
 pip install -r requirements.txt
+python manage.py migrate
 python manage.py runserver
 ```
 
-### 5. Shell Script Automation (Optional)
+---
+
+### 4. Shell Script Automation (Optional)
 You can use a script for invoking blockchain:
 ```bash
-chmod +x scripts/invoke_order.sh
+chmod +x scripts/invoke_the_chaincode.sh
 ```
 The Django view will run this script with proper environment to interact with peer CLI.
 
 ---
 
-### 6. Run the Angular Frontend
+<!-- ### 5. Run the Angular Frontend (Deprecated)
 ```bash
 cd blocktrack_frontend
 npm install
@@ -126,9 +131,9 @@ ng serve
 ```
 Open your browser at: [http://localhost:4200](http://localhost:4200)
 
----
+--- -->
 
-### 7. Start the Database with Docker Compose
+### 5. Start the Database with Docker Compose (Optional)
 To start the database, use the provided `docker-compose.yaml` file:
 ```bash
 cd blocktrack_backend
@@ -136,21 +141,26 @@ sudo docker-compose up -d
 ```
 This will start the PostgreSQL database required for the backend.
 
-### 8. Environment Variables
-Ensure the following environment variables are set for the backend:
+---
+
+### 6. Environment Variables
+Ensure the following environment variables are set in a `.env` file within the `blocktrack_backend` folder
 
 ```env
-DATABASE_NAME=blocktrack_db
-DATABASE_USER=blocktrack_user
-DATABASE_PASSWORD=securepassword
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-SECRET_KEY=your_secret_key_here
-DEBUG=True
-ALLOWED_HOSTS=*
+SECRET_KEY=
+DEBUG=False
+
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+DB_HOST=
+DB_PORT=
+
+WAREHOUSE_SERVICE_URL=
+USER_SERVICE_URL=
 ```
 
-### 9. Dummy Data
+### 7. Dummy Data
 Run the dummy.py as follows:
 ```bash
 # On Linux/MacOS
@@ -160,6 +170,13 @@ python manage.py shell < dummy.py
 python manage.py shell < dummy.py
 ```
 
+### 8. View the API Documentation
+Access the API documentation using Swagger UI by visiting:
+```
+http://127.0.0.1:8000/swagger
+```
+This provides an interactive interface to explore and test all available API endpoints.
+
 ---
 
 ## 🔌 API Endpoints
@@ -167,7 +184,7 @@ python manage.py shell < dummy.py
 Run the django app and visit `/swagger` to view the swagger-UI docs
 
 ---
-
+<!-- 
 ## 🖼️ Angular UI Pages
 
 | Route                  | Function           |
@@ -175,11 +192,13 @@ Run the django app and visit `/swagger` to view the swagger-UI docs
 | `/create-order`        | Upload + register  |
 | `/read-order`          | Search order ID    |
 
----
+--- -->
 
 ## 🧪 Testing with Postman
 
-### POST `/api/create-order/`
+Import the `config.postman.json` in `./blocktrack_backend` and checkout the endpoints
+
+<!-- ### POST `/api/create-order/`
 **Body:** `form-data`
 
 | Key       | Type | Value                  |
@@ -190,17 +209,23 @@ Run the django app and visit `/swagger` to view the swagger-UI docs
 | document  | File | upload any file        |
 
 ### GET `/api/read-order/order901/`
-- Returns the blockchain order details in JSON.
+- Returns the blockchain order details in JSON. -->
 
 ---
 
 ## 🔧 Chaincode Logic (Go)
 
 Chaincode functions:
-```go
-CreateOrder(ctx, id, status, timestamp, docHash)
-ReadOrder(ctx, id)
-```
+
+- CreateOrder(ctx, id, status, timestamp, orderType, docHashesJSON)
+
+- AddDocumentsToOrder(ctx, id, docHashesJSON)
+
+- DeleteDocumentsFromOrder(ctx, id, docHashesJSON)
+
+- UpdateOrderStatus(ctx, id, newStatus, newTimestamp)
+
+- ReadOrder(ctx, id)
 
 Each order is stored like:
 ```json
@@ -208,8 +233,25 @@ Each order is stored like:
   "ID": "order901",
   "Status": "Packed",
   "Timestamp": "2025-05-02T22:00:00Z",
-  "DocumentHash": "Qm..."
+  "Type" : "ORD",
+  "DocumentHashes": ["Qm...", "Qm...", ...]
 }
+```
+
+There are scripts to invoke each of the chaincode functions as bellow
+
+```bash
+# Create Order
+./scripts/invoke_the_chaincode.sh '{"Args":["46","Pending","2025-05-11T12:00:00Z","ORD", "[\"qweqwe\"]"]}'
+
+# Update Order Status
+./scripts/invoke_updateOrderStatus.sh '{"Args":["ORDER123","Shipped","2025-05-11T12:00:00Z"]}'
+
+# Add doc hashes to Order
+./scripts/invoke_addDocs.sh '{"Args":["46","[\"Qoija43wqtsduhawefiuh3124h2378urfei\"]"]}'
+
+# Remove doc hashes from order
+./scripts/invoke_deleteDocs.sh '{"Args":["46","[\"Hello2\"]"]}'
 ```
 
 ---
@@ -219,7 +261,7 @@ Each order is stored like:
 - CID is stored on blockchain.
 - You can access documents at:
 ```bash
-https://ipfs.io/ipfs/<CID>
+http://localhost:8989/ipfs/<CID>
 ```
 
 ---

@@ -20,6 +20,14 @@ from drf_yasg import openapi
 from django.utils import timezone
 
 class ReadOrderView(APIView):
+    @swagger_auto_schema(
+        manual_parameters=[
+            # Define query parameter "test"
+            openapi.Parameter(
+                'order_id', openapi.IN_QUERY, description="Id of the order", type=openapi.TYPE_STRING
+            )
+        ]
+    )
     def get(self, request):
         try:
             order_id = request.GET.get("order_id")

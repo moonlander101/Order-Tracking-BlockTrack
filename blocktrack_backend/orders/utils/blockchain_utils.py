@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent  # → blocktrack_backend/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent  # → blocktrack_backend/
 FABRIC_BASE = PROJECT_ROOT / "test-network" / ".."
 FABRIC_BASE = FABRIC_BASE.resolve()
 
