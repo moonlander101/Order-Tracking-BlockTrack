@@ -1,0 +1,439 @@
+{
+  "info": {
+    "name": "BlockTrack API",
+    "description": "Collection for testing BlockTrack Order Tracking System API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Documentation",
+      "item": [
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/swagger/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["swagger", ""]
+            }
+          }
+        },
+        {
+          "name": "ReDoc",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/redoc/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["redoc", ""]
+            }
+          }
+        },
+        {
+          "name": "Swagger JSON",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/swagger.json",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["swagger.json"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "List All Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"details\": {\n    \"warehouse_id\": 1,\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194,\n    \"products\": [\n      {\n        \"product_id\": 1,\n        \"quantity\": 5\n      }\n    ]\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Order Details",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", "1", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shipped\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Orders by User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/vendor/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", "vendor", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Orders by Warehouse",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/warehouse/1?minimal=false",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", "warehouse", "1"],
+              "query": [
+                {
+                  "key": "minimal",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/orders/1/status/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "orders", "1", "status", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\",\n  \"warehouse_location\": {\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Blockchain Order Details",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/order/details/?order_id=1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "order", "details", ""],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Supplier Requests",
+      "item": [
+        {
+          "name": "List All Supplier Requests",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Supplier Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_id\": 1,\n  \"warehouse_id\": 1,\n  \"product_id\": 1,\n  \"count\": 10,\n  \"expected_delivery_date\": \"2025-05-20T10:00:00Z\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Supplier Request Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/1/status/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "1", "status", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"received\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Supplier Request Details",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/request/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "request", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Update Supplier Request",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/request/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "request", "1", ""]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"received\",\n  \"quality\": 9,\n  \"is_defective\": false\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Supplier Request",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/request/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "request", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Supplier Requests by Supplier",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/supplier/1/?status=pending&status=received",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "supplier", "1", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "status",
+                  "value": "received"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Supplier Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/metrics/1/",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "metrics", "1", ""]
+            }
+          }
+        },
+        {
+          "name": "Supplier Requests by Warehouse",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/supplier-request/warehouse/1/?status=pending,received",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "supplier-request", "warehouse", "1", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending,received"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/api/v0/docs/1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "docs", "1"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "document",
+                  "type": "file",
+                  "src": "/path/to/your/file.pdf"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/docs/list?order_id=1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "docs", "list"],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Generate Document Links",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8000/api/v0/docs/links?order_id=1",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["api", "v0", "docs", "links"],
+              "query": [
+                {
+                  "key": "order_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
