@@ -89,7 +89,7 @@ To make setup easier, we’ve included a shell script: `scripts/setup_the_chainc
 ### 🚀 To Run It:
 ```bash
 chmod +x scripts/setup_the_chaincode.sh
-./scripts/setup_chaincode.sh
+./scripts/setup_the_chaincode.sh
 # 🔁 Make sure you're inside the test-network directory before running the script.
 ```
 
