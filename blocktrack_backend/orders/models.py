@@ -21,7 +21,7 @@ class Order(models.Model):
 class OrderDetails(models.Model):
     order = models.OneToOneField(Order, related_name='details', on_delete=models.CASCADE)
     warehouse_id = models.IntegerField()
-    nearest_city = models.CharField(max_length=255)
+    # nearest_city = models.CharField(max_length=255)
     latitude = models.CharField(max_length=32)
     longitude = models.CharField(max_length=32)
 

@@ -14,7 +14,7 @@ class MinimalOrderProductSerializer(serializers.ModelSerializer):
 class OrderDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderDetails
-        fields = ['warehouse_id', 'nearest_city', 'latitude', 'longitude']
+        fields = ['warehouse_id', 'latitude', 'longitude']
 
 class OrderSerializer(serializers.ModelSerializer):
     products = OrderProductSerializer(many=True)
@@ -48,3 +48,24 @@ class MinimalOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['order_id', 'products']
+
+class CreateOrderSerializer(serializers.ModelSerializer):
+    products = MinimalOrderProductSerializer(many=True)
+    details = OrderDetailsSerializer()
+
+    class Meta:
+        model = Order
+        fields = ['user_id', 'details', 'products']
+
+    def create(self, validated_data):
+        products_data = validated_data.pop('products', [])
+        details_data = validated_data.pop('details')
+
+        order = Order.objects.create(**validated_data)
+
+        OrderDetails.objects.create(order=order, **details_data)
+
+        for product_data in products_data:
+            OrderProduct.objects.create(order=order, **product_data)
+
+        return order

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from rest_framework import generics, status
 from .models import Order
-from .serializers import MinimalOrderSerializer, OrderSerializer
+from .serializers import CreateOrderSerializer, MinimalOrderSerializer, OrderSerializer
 import subprocess
 import tempfile
 import os
@@ -50,25 +50,35 @@ class OrderListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status']
 
+    @swagger_auto_schema(
+        request_body=CreateOrderSerializer,
+        responses={
+            201: OrderSerializer(),
+            400: 'Bad Request',
+            500: 'Internal Server Error'
+        },
+        operation_description="Create a new order"
+    )
+    # Method is defined just for swagger to work properly
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+    
     def create(self, request, *args, **kwargs):
-        # Standard serializer validation
         print(request.data)
-        serializer = self.get_serializer(data=request.data)
+        serializer = CreateOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Set default status if not provided
-        if 'status' not in serializer.validated_data:
-            serializer.validated_data['status'] = 'pending'
-        
-        # Save the order to database
+        serializer.validated_data['status'] = 'pending'
+
+        for p in serializer.validated_data['products']:
+            p['unit_price'] = 69
+
         order = serializer.save()
         
         # Register on blockchain
         try:
-            # Format timestamp
             timestamp = order.created_at.isoformat()
             
-            # Call the blockchain function with order data
             invoke_create_order(
                 order_id=str(order.order_id),
                 timestamp=timestamp,
