@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from .utils.endpoints import fetch_products
+
 from .utils.blockchain_utils import CREATE_ORDER_SCRIPT_PATH, TEST_NETWORK, get_fabric_env, invoke_create_order, invoke_read_order, invoke_update_order_status
 from . import send_to_kafka
 from rest_framework.views import APIView
@@ -69,9 +71,13 @@ class OrderListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         
         serializer.validated_data['status'] = 'pending'
-
+        
+        # Fetch prices from warehouse and add to data
+        product_details = fetch_products()
         for p in serializer.validated_data['products']:
-            p['unit_price'] = 69
+            product_id = p["product_id"]
+            pd = [p for p in product_details if p["id"] == product_id]
+            p['unit_price'] = pd[0]["unit_price"]
 
         order = serializer.save()
         
