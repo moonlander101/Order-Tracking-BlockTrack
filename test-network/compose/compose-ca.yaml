@@ -8,6 +8,9 @@ version: '3.7'
 networks:
   test:
     name: fabric_test
+  scms:
+    external: true
+    name: scms-network
 
 services:
 
@@ -29,7 +32,7 @@ services:
       - ../organizations/fabric-ca/org1:/etc/hyperledger/fabric-ca-server
     container_name: ca_org1
     networks:
-      - test
+      - scms
 
   ca_org2:
     image: hyperledger/fabric-ca:latest
@@ -49,7 +52,7 @@ services:
       - ../organizations/fabric-ca/org2:/etc/hyperledger/fabric-ca-server
     container_name: ca_org2
     networks:
-      - test
+      - scms
 
   ca_orderer:
     image: hyperledger/fabric-ca:latest
@@ -69,4 +72,4 @@ services:
       - ../organizations/fabric-ca/ordererOrg:/etc/hyperledger/fabric-ca-server
     container_name: ca_orderer
     networks:
-      - test
+      - scms

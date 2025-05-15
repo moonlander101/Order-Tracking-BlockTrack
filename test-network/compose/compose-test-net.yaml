@@ -13,6 +13,9 @@ volumes:
 networks:
   test:
     name: fabric_test
+  scms:
+    external: true
+    name: scms-network
 
 services:
 
@@ -56,7 +59,7 @@ services:
       - 7053:7053
       - 9443:9443
     networks:
-      - test
+      - scms
 
   peer0.org1.example.com:
     container_name: peer0.org1.example.com
@@ -95,7 +98,7 @@ services:
       - 7051:7051
       - 9444:9444
     networks:
-      - test
+      - scms
 
   peer0.org2.example.com:
     container_name: peer0.org2.example.com
@@ -134,4 +137,4 @@ services:
       - 9051:9051
       - 9445:9445
     networks:
-      - test
+      - scms

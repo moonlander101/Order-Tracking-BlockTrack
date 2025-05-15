@@ -1,4 +1,15 @@
 services:
+  blocktrack_backend:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: blocktrack_backend
+    ports:
+      - "8000:8000"
+    restart: always
+    networks:
+      - scms
+  
   blocktrack_postgres:
     image: postgres:15
     container_name: blocktrack_postgres
@@ -11,6 +22,8 @@ services:
       - "15433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scms
   
   adminer:
     image: adminer
@@ -20,5 +33,13 @@ services:
       - "8080:8080"
     depends_on:
       - blocktrack_postgres
+    networks:
+      - scms
 volumes:
   postgres_data:
+
+
+networks:
+  scms:
+    external: true
+    name: scms-network

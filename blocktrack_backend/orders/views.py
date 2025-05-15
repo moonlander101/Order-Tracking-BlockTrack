@@ -18,6 +18,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.utils import timezone
+import logging
 
 class ReadOrderView(APIView):
     @swagger_auto_schema(
@@ -82,7 +83,9 @@ class OrderListCreateView(generics.ListCreateAPIView):
             
         except Exception as e:
             # Log the error but keep the order in database
-            print(f"Blockchain registration failed: {str(e)}")
+            # Use proper logging instead of print for Docker compatibility
+            logger = logging.getLogger(__name__)
+            logger.error(f"Blockchain registration failed: {str(e)}")
             
             headers = self.get_success_headers(serializer.data)
             return Response({
