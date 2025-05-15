@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from .utils.endpoints import fetch_products
+from .utils.endpoints import fetch_products, fetch_warehouse_details
 
 from .utils.blockchain_utils import CREATE_ORDER_SCRIPT_PATH, TEST_NETWORK, get_fabric_env, invoke_create_order, invoke_read_order, invoke_update_order_status
 from . import send_to_kafka
@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from rest_framework import generics, status
+from rest_framework.exceptions import MethodNotAllowed
 from .models import Order
 from .serializers import CreateOrderSerializer, MinimalOrderSerializer, OrderSerializer
 import subprocess
@@ -137,6 +138,13 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = OrderSerializer
     lookup_field = 'order_id'
 
+    # Removed partial update and full update from the endpoints
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed('PUT')
+
+    def patch(self, request, *args, **kwargs):
+        raise MethodNotAllowed('PATCH')
+
     def partial_update(self, request, *args, **kwargs):
         if 'status' in request.data:
             order_id = kwargs.get('order_id')
@@ -205,9 +213,10 @@ class OrderStatusUpdateView(APIView):
                 return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
             new_status = request.data.get('status')
-            
-            #TODO: Where to fetch this location from
-            warehouse_location = request.data.get('warehouse_location')
+            warehouse_id = order.details.warehouse_id
+            warehouse_location = fetch_warehouse_details(warehouse_id)
+
+
             if(not warehouse_location):
                 return Response(
                     {
@@ -219,9 +228,10 @@ class OrderStatusUpdateView(APIView):
             new_data = {}
 
             if warehouse_location:
-                origin_longitude = warehouse_location.get('longitude')
-                origin_latitude = warehouse_location.get('latitude')
-            
+                # Filter out the "° E" part in "79.8612° E" given by warehouse
+                origin_longitude = warehouse_location.get('location_x')[:-3].strip()
+                origin_latitude = warehouse_location.get('location_y')[:-3].strip()
+
             # Validate status against model choices if provided
             if new_status:
                 valid_statuses = [choice[0] for choice in Order._meta.get_field('status').choices]
