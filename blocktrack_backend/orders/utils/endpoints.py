@@ -18,6 +18,9 @@ def fetch_warehouse_details(warehouse_id):
         try:
             response = client.get(url)
             response.raise_for_status()
-            return [x for x in response.json() if x["id"] == warehouse_id][0]
+            resp = [x for x in response.json() if x["id"] == warehouse_id]
+            if len(resp) == 0:
+                return None
+            return resp
         except httpx.HTTPError as e:
             raise Exception(f"Error fetching warehouse details: {str(e)}")

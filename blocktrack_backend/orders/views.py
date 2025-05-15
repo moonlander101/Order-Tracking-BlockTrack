@@ -1,26 +1,19 @@
-import json
-from pathlib import Path
-
 from .utils.endpoints import fetch_products, fetch_warehouse_details
-
-from .utils.blockchain_utils import CREATE_ORDER_SCRIPT_PATH, TEST_NETWORK, get_fabric_env, invoke_create_order, invoke_read_order, invoke_update_order_status
+from .utils.blockchain_utils import invoke_create_order, invoke_read_order, invoke_update_order_status
 from . import send_to_kafka
+from .models import Order
+from .serializers import CreateOrderSerializer, MinimalOrderSerializer, OrderSerializer
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from rest_framework import generics, status
 from rest_framework.exceptions import MethodNotAllowed
-from .models import Order
-from .serializers import CreateOrderSerializer, MinimalOrderSerializer, OrderSerializer
-import subprocess
-import tempfile
-import os
-from .utils.ipfs_utils import get_ipfs_url, upload_to_ipfs
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.utils import timezone
 
 class ReadOrderView(APIView):
     @swagger_auto_schema(
@@ -213,26 +206,10 @@ class OrderStatusUpdateView(APIView):
                 return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
             new_status = request.data.get('status')
-            warehouse_id = order.details.warehouse_id
-            warehouse_location = fetch_warehouse_details(warehouse_id)
-
-
-            if(not warehouse_location):
-                return Response(
-                    {
-                        "error" : "Warehouse location must be provided for status to switch to 'accepted'"
-                    },
-                    status = 400
-                )
-            
-            new_data = {}
-
-            if warehouse_location:
-                # Filter out the "° E" part in "79.8612° E" given by warehouse
-                origin_longitude = warehouse_location.get('location_x')[:-3].strip()
-                origin_latitude = warehouse_location.get('location_y')[:-3].strip()
 
             # Validate status against model choices if provided
+            new_data = {}
+            
             if new_status:
                 valid_statuses = [choice[0] for choice in Order._meta.get_field('status').choices]
                 
@@ -246,6 +223,23 @@ class OrderStatusUpdateView(APIView):
 
             # Create the event and push to kafka
             if new_status == "accepted":
+                warehouse_id = order.details.warehouse_id
+                warehouse_location = fetch_warehouse_details(warehouse_id)
+
+                if(not warehouse_location):
+                    return Response(
+                        {
+                            "error" : "Warehouse not found"
+                        },
+                        status = 400
+                    )
+                
+                if warehouse_location:
+                    # Filter out the "° E" part in "79.8612° E" given by warehouse
+                    origin_longitude = warehouse_location.get('location_x')[:-3].strip()
+                    origin_latitude = warehouse_location.get('location_y')[:-3].strip()
+
+
                 event = {
                     "order_id": order_id,
                     "origin": {"lat": origin_latitude, "lng":   origin_longitude},
