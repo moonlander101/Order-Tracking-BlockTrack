@@ -215,7 +215,9 @@ class SupplierRequestMetrics(APIView):
                 expected_duration = expected_delivery_date - created_at
                 actual_duration = received_at - created_at
                 if expected_duration.total_seconds() > 0:
-                    responsiveness_values.append(actual_duration / expected_duration)
+                    ratio = actual_duration / expected_duration
+                    normalized = min(max(ratio * 10, 0), 10)
+                    responsiveness_values.append(normalized)
 
         accuracy_count = sum(
             1 for d in data if (
