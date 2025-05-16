@@ -194,9 +194,9 @@ Run the django app and visit `/swagger` to view the swagger-UI docs
 
 --- -->
 
-## 🧪 Testing with Postman
+<!-- ## 🧪 Testing with Postman
 
-Import the `config.postman.json` in `./blocktrack_backend` and checkout the endpoints
+Import the `config.postman.json` in `./blocktrack_backend` and checkout the endpoints -->
 
 <!-- ### POST `/api/create-order/`
 **Body:** `form-data`
