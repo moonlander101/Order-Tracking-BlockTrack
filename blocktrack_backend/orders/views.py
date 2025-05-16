@@ -168,12 +168,20 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
         return super().partial_update(request, *args, **kwargs)
 
 
-class UserOrderListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
+class UserOrderListView(APIView):
+    def get(self, request, user_id):
+        orders = Order.objects.filter(user_id=user_id)
+        product_details = fetch_products()
+        id_to_name = {str(p["id"]): p["product_name"] for p in product_details}
 
-    def get_queryset(self):
-        user_id = self.kwargs['user_id']
-        return Order.objects.filter(user_id=user_id)
+        serialized_orders = []
+        for order in orders:
+            order_data = OrderSerializer(order).data
+            for product in order_data.get("products", []):
+                product["product_name"] = id_to_name.get(str(product.get("product_id")))
+            serialized_orders.append(order_data)
+
+        return Response(serialized_orders)
 
 
 class OrderStatusUpdateView(APIView):
