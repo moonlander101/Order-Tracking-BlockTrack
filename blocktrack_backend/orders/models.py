@@ -11,8 +11,6 @@ class Order(models.Model):
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
     ])
-    blockchain_tx_id = models.CharField(max_length=255, blank=True, null=True)
-    ipfs_hash = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -20,8 +18,17 @@ class Order(models.Model):
 
 class OrderDetails(models.Model):
     order = models.OneToOneField(Order, related_name='details', on_delete=models.CASCADE)
+    order_number = models.CharField(max_length=64)
     warehouse_id = models.IntegerField()
-    # nearest_city = models.CharField(max_length=255)
+    warehouse_name = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=128)
+    last_name = models.CharField(max_length=128)
+    phone = models.CharField(max_length=32)
+    address = models.CharField(max_length=128)
+    city = models.CharField(max_length=128)
+    state = models.CharField(max_length=128)
+    zipcode = models.CharField(max_length=16)
+    instructions = models.TextField(blank=True, default="")
     latitude = models.CharField(max_length=32)
     longitude = models.CharField(max_length=32)
 
