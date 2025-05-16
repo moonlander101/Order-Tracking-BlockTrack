@@ -6,14 +6,10 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# WORKDIR /app
 
-COPY . .
+# COPY . .
 
 WORKDIR /app/blocktrack_backend
 
-RUN pip install --no-cache-dir -r requirements.txt
-
 EXPOSE 8000
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
