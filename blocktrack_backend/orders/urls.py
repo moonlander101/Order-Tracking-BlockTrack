@@ -9,6 +9,6 @@ urlpatterns = [
     path('orders/vendor/<int:user_id>/', UserOrderListView.as_view(), name='order-by-user'),
     path('orders/warehouse/<int:warehouse_id>', OrderByWarehouse.as_view(), name='order-detail-by-warehouse'),
     path('orders/<int:order_id>/status/', OrderStatusUpdateView.as_view(), name='status-update'),
-    path('order/details/', ReadOrderView.as_view(), name='order-or-sr-blockchain-details')
+    path('orders/details/', ReadOrderView.as_view(), name='order-or-sr-blockchain-details')
     # path("api/legacy/order/<str:order_id>/", ReadOrderLegacyView.as_view()),
 ]

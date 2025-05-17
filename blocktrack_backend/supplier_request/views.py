@@ -1,5 +1,6 @@
 from decimal import Decimal
 from orders.utils.blockchain_utils import invoke_create_order, invoke_update_order_status
+from .utils import add_price_competitiveness_score
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -11,6 +12,7 @@ from .models import SupplierRequest
 from .serializers import SupplierRequestSerializer
 # from datetime import datetime, timezone
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 # Get service URLs from environment variables
 user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
@@ -191,55 +193,82 @@ class SupplierRequestGetOrPartialUpdate(APIView):
 
 class SupplierRequestMetrics(APIView):
     def get(self, request, supplier_id):
-        data = SupplierRequest.objects.filter(supplier_id=supplier_id).values(
-            'is_defective', 'quality', 'count', 'unit_price', 'status', 
-            'expected_delivery_date', 'received_at', 'created_at'
+        start_date = request.GET.get("start_date")
+        queryset = SupplierRequest.objects.all()
+        if start_date:
+            start_date_parsed = parse_datetime(start_date)
+            if start_date_parsed:
+                queryset = queryset.filter(created_at__gt=start_date_parsed)
+            else:
+                return Response({"error": "Invalid start_date format"}, status=400)
+
+        data = queryset.values(
+            'is_defective', 'quality', 'count', 'unit_price', 'status',
+            'expected_delivery_date', 'received_at', 'created_at', 'product_id', 'supplier_id'
         )
 
-        total = len(data)
-        defective_count = sum(1 for d in data if d.get('is_defective'))
-        returned_count = sum(1 for d in data if d.get('status') == "returned")
-        received_count = sum(1 for d in data if d.get('status') == "received")
-        q_sum = sum(d.get('quality', 0) or 0 for d in data)
-
-        on_time_count = sum(
-            1 for d in data if d.get('received_at') and d.get('expected_delivery_date') and d['received_at'] <= d['expected_delivery_date']
-        )
-
-        responsiveness_values = []
+        data = add_price_competitiveness_score(data)
+        data = [d for d in data if d['supplier_id'] == supplier_id]
+        print(data)
+        # Group data by product_id
+        product_groups = {}
         for d in data:
-            received_at = d.get('received_at')
-            created_at = d.get('created_at')
-            expected_delivery_date = d.get('expected_delivery_date')
-            if received_at and created_at and expected_delivery_date:
-                expected_duration = expected_delivery_date - created_at
-                actual_duration = received_at - created_at
-                if expected_duration.total_seconds() > 0:
-                    responsiveness_values.append(actual_duration / expected_duration)
+            product_id = d.get('product_id')
+            if product_id not in product_groups:
+                product_groups[product_id] = []
+            product_groups[product_id].append(d)
 
-        accuracy_count = sum(
-            1 for d in data if (
+        # Calculate metrics per product
+        product_metrics = []
+        for product_id, product_data in product_groups.items():
+            p_total = len(product_data)
+            p_defective_count = sum(1 for d in product_data if d.get('is_defective'))
+            p_returned_count = sum(1 for d in product_data if d.get('status') == "returned")
+            p_received_count = sum(1 for d in product_data if d.get('status') == "received")
+            p_q_sum = sum(d.get('quality', 0) or 0 for d in product_data)
+            
+            p_on_time_count = sum(
+            1 for d in product_data if d.get('received_at') and d.get('expected_delivery_date') 
+            and d['received_at'] <= d['expected_delivery_date']
+            )
+            
+            p_responsiveness_values = []
+            for d in product_data:
+                received_at = d.get('received_at')
+                created_at = d.get('created_at')
+                expected_delivery_date = d.get('expected_delivery_date')
+                if received_at and created_at and expected_delivery_date:
+                    expected_duration = expected_delivery_date - created_at
+                    actual_duration = received_at - created_at
+                    if expected_duration.total_seconds() > 0:
+                        ratio = actual_duration / expected_duration
+                        normalized = min(max(ratio * 10, 0), 10)
+                        p_responsiveness_values.append(normalized)
+            
+            p_accuracy_count = sum(
+            1 for d in product_data if (
                 d.get('status') == 'received' and 
                 not d.get('is_defective') and 
                 (d.get('quality') or 0) >= 8
             )
-        )
+            )
+            
+            product_metrics.append({
+                "product_id": product_id,
+                "total_requests": p_total,
+                "defective_count": p_defective_count,
+                "defective_rate": p_defective_count / p_total if p_total > 0 else 0,
+                "return_count": p_returned_count,
+                "returned_rate": p_returned_count / p_total if p_total > 0 else 0,
+                "quality_score": p_q_sum / p_total if p_total > 0 else 0,
+                "on_time_delivery_rate": p_on_time_count / p_total if p_total > 0 else 0,
+                "fill_rate": p_received_count / p_total if p_total > 0 else 0,
+                "avg_responsiveness": sum(p_responsiveness_values) / len(p_responsiveness_values) if p_responsiveness_values else None,
+                "order_accuracy_rate": p_accuracy_count / p_total if p_total > 0 else 0,
+                "data" : product_groups[product_id]
+            })
 
-        metrics = {
-            "total_requests": total,
-            "defective_count": defective_count,
-            "defective_rate": defective_count / total if total > 0 else 0,
-            "return_count": returned_count,
-            "returned_rate": returned_count / total if total > 0 else 0,
-            "quality_score": q_sum / total if total > 0 else 0,
-            "on_time_delivery_rate": on_time_count / total if total > 0 else 0,
-            "fill_rate": received_count / total if total > 0 else 0,
-            "avg_responsiveness": sum(responsiveness_values) / len(responsiveness_values) if responsiveness_values else None,
-            "order_accuracy_rate": accuracy_count / total if total > 0 else 0,
-            "data": data
-        }
-
-        return Response(metrics)
+        return Response(product_metrics)
     
 
 class SupplierRequestWithNames(APIView):

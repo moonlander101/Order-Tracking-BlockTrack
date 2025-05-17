@@ -1,22 +1,20 @@
-import json
-from pathlib import Path
-
-from .utils.blockchain_utils import CREATE_ORDER_SCRIPT_PATH, TEST_NETWORK, get_fabric_env, invoke_create_order, invoke_read_order, invoke_update_order_status
+from .utils.endpoints import fetch_products, fetch_warehouse_details
+from .utils.blockchain_utils import invoke_create_order, invoke_read_order, invoke_update_order_status
 from . import send_to_kafka
+from .models import Order
+from .serializers import CreateOrderSerializer, MinimalOrderSerializer, OrderSerializer
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser
 from rest_framework import generics, status
-from .models import Order
-from .serializers import MinimalOrderSerializer, OrderSerializer
-import subprocess
-import tempfile
-import os
-from .utils.ipfs_utils import get_ipfs_url, upload_to_ipfs
+from rest_framework.exceptions import MethodNotAllowed
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+
 from django.utils import timezone
 import logging
 
@@ -51,25 +49,39 @@ class OrderListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status']
 
+    @swagger_auto_schema(
+        request_body=CreateOrderSerializer,
+        responses={
+            201: OrderSerializer(),
+            400: 'Bad Request',
+            500: 'Internal Server Error'
+        },
+        operation_description="Create a new order"
+    )
+    # Method is defined just for swagger to work properly
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+    
     def create(self, request, *args, **kwargs):
-        # Standard serializer validation
         print(request.data)
-        serializer = self.get_serializer(data=request.data)
+        serializer = CreateOrderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Set default status if not provided
-        if 'status' not in serializer.validated_data:
-            serializer.validated_data['status'] = 'pending'
+        serializer.validated_data['status'] = 'pending'
         
-        # Save the order to database
+        # Fetch prices from warehouse and add to data
+        product_details = fetch_products()
+        for p in serializer.validated_data['products']:
+            product_id = p["product_id"]
+            pd = [p for p in product_details if p["id"] == product_id]
+            p['unit_price'] = pd[0]["unit_price"]
+
         order = serializer.save()
         
         # Register on blockchain
         try:
-            # Format timestamp
             timestamp = order.created_at.isoformat()
             
-            # Call the blockchain function with order data
             invoke_create_order(
                 order_id=str(order.order_id),
                 timestamp=timestamp,
@@ -124,6 +136,13 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = OrderSerializer
     lookup_field = 'order_id'
 
+    # Removed partial update and full update from the endpoints
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed('PUT')
+
+    def patch(self, request, *args, **kwargs):
+        raise MethodNotAllowed('PATCH')
+
     def partial_update(self, request, *args, **kwargs):
         if 'status' in request.data:
             order_id = kwargs.get('order_id')
@@ -154,12 +173,20 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
         return super().partial_update(request, *args, **kwargs)
 
 
-class UserOrderListView(generics.ListAPIView):
-    serializer_class = OrderSerializer
+class UserOrderListView(APIView):
+    def get(self, request, user_id):
+        orders = Order.objects.filter(user_id=user_id)
+        product_details = fetch_products()
+        id_to_name = {str(p["id"]): p["product_name"] for p in product_details}
 
-    def get_queryset(self):
-        user_id = self.kwargs['user_id']
-        return Order.objects.filter(user_id=user_id)
+        serialized_orders = []
+        for order in orders:
+            order_data = OrderSerializer(order).data
+            for product in order_data.get("products", []):
+                product["product_name"] = id_to_name.get(str(product.get("product_id")))
+            serialized_orders.append(order_data)
+
+        return Response(serialized_orders)
 
 
 class OrderStatusUpdateView(APIView):
@@ -192,24 +219,10 @@ class OrderStatusUpdateView(APIView):
                 return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
             new_status = request.data.get('status')
-            
-            #TODO: Where to fetch this location from
-            warehouse_location = request.data.get('warehouse_location')
-            if(not warehouse_location):
-                return Response(
-                    {
-                        "error" : "Warehouse location must be provided for status to switch to 'accepted'"
-                    },
-                    status = 400
-                )
-            
-            new_data = {}
 
-            if warehouse_location:
-                origin_longitude = warehouse_location.get('longitude')
-                origin_latitude = warehouse_location.get('latitude')
-            
             # Validate status against model choices if provided
+            new_data = {}
+            
             if new_status:
                 valid_statuses = [choice[0] for choice in Order._meta.get_field('status').choices]
                 
@@ -223,6 +236,23 @@ class OrderStatusUpdateView(APIView):
 
             # Create the event and push to kafka
             if new_status == "accepted":
+                warehouse_id = order.details.warehouse_id
+                warehouse_location = fetch_warehouse_details(warehouse_id)
+
+                if(not warehouse_location):
+                    return Response(
+                        {
+                            "error" : "Warehouse not found"
+                        },
+                        status = 400
+                    )
+                
+                if warehouse_location:
+                    # Filter out the "° E" part in "79.8612° E" given by warehouse
+                    origin_longitude = warehouse_location.get('location_x')[:-3].strip()
+                    origin_latitude = warehouse_location.get('location_y')[:-3].strip()
+
+
                 event = {
                     "order_id": order_id,
                     "origin": {"lat": origin_latitude, "lng":   origin_longitude},
