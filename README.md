@@ -35,20 +35,28 @@ blocktrack/
 └── README.md
 ```
 
-<!-- ---
+  
 
 ## ⚙️ Prerequisites
 
 Before running this project, ensure you have:
 
-* ✅ [Docker](https://www.docker.com/)
-* ✅ [Hyperledger Fabric Samples](https://hyperledger-fabric.readthedocs.io/en/latest/test_network.html)
-* ✅ [IPFS Desktop](https://docs.ipfs.tech/install/ipfs-desktop/) or run `ipfs daemon`
-* ✅ Python 3.10+
-* ✅ Go (for chaincode)
-* ✅ Node.js + Angular CLI (for frontend)
+* ✅ Python 3.10+ (for the backend)
+* ✅ Go (for chaincode packaging)
 
---- -->
+  Install it by following the instructions at [go.dev/doc/install](https://go.dev/doc/install)
+* ✅ jq (for parsing blockchain related configs)
+
+  ```bash
+  # On Ubuntu/Debian
+  sudo apt-get install jq
+
+  # On macOS
+  brew install jq
+  ```
+
+> ⚠️ **Important:** All blockchain-related commands must be executed on a Linux/MacOS terminal. If you're on Windows, please use WSL (Windows Subsystem for Linux) to run these commands (Do not use terminals such as git bash).
+
 
 ## 🚀 How to Run the Project
 
@@ -66,13 +74,13 @@ From your Fabric samples directory:
 curl -sSL https://bit.ly/2ysbOFE | bash -s -- -d -s
 cd ./test-network
 ```
-
+<!-- 
 > ✅ Note: Adjust `-ccp` if needed to point to your `chaincode-order` directory.
 >
 
-## ⚙️ One-Click Network Setup (Full Automation)
+## ⚙️ One-Click Network Setup (Full Automation) -->
 
-To make setup easier, we’ve included a shell script: `scripts/setup_the_chaincode.sh`
+To make setup easier, we've included a shell script: `scripts/setup_the_chaincode.sh`
 
 ### 🔧 What It Does:
 - Brings down any existing Fabric network
@@ -89,9 +97,11 @@ To make setup easier, we’ve included a shell script: `scripts/setup_the_chainc
 ### 🚀 To Run It:
 ```bash
 chmod +x scripts/setup_the_chaincode.sh
-./scripts/setup_the_chaincode.sh
-# 🔁 Make sure you're inside the test-network directory before running the script.
+./scripts/setup_chaincode.sh
+# 🔁 Make sure you're inside the test-network directory before running the script, and that you have installed both golang and jq.
 ```
+
+You can test out the blockchain with the commands mentioned under [Sample Scripts](#sample-scripts)
 
 ---
 
@@ -211,9 +221,7 @@ Import the `config.postman.json` in `./blocktrack_backend` and checkout the endp
 ### GET `/api/read-order/order901/`
 - Returns the blockchain order details in JSON. -->
 
----
-
-## 🔧 Chaincode Logic (Go)
+## Chaincode Logic (Go)
 
 Chaincode functions:
 
@@ -238,9 +246,13 @@ Each order is stored like:
 }
 ```
 
+### Sample Scripts
+
 There are scripts to invoke each of the chaincode functions as bellow
 
 ```bash
+# Call each of these scripts from the test-network directory
+
 # Create Order
 ./scripts/invoke_the_chaincode.sh '{"Args":["46","Pending","2025-05-11T12:00:00Z","ORD", "[\"qweqwe\"]"]}'
 
@@ -273,7 +285,3 @@ http://localhost:8989/ipfs/<CID>
 - Frontend + Backend + Chaincode fully working
 
 ---
-
-
-
-
