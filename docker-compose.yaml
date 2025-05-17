@@ -1,9 +1,9 @@
 services:
-  blocktrack_backend:
+  blocktrack-backend:
     build:
       context: .
       dockerfile: ./Dockerfile
-    container_name: blocktrack_backend
+    container_name: blocktrack-backend
     ports:
       - "8000:8000"
     restart: always
@@ -16,25 +16,25 @@ services:
     networks:
       - scms
   
-  blocktrack_consumer:
+  blocktrack-consumer:
     build:
       context: .
       dockerfile: ./Dockerfile
-    container_name: blocktrack_consumer
+    container_name: blocktrack-consumer
     restart: always
     volumes:
       - ".:/app/"
     command: /bin/sh -c "cd /app/blocktrack_backend && python manage.py consume_messages"
     depends_on:
-      - blocktrack_postgres
+      - blocktrack-postgres
     environment:
       KAFKA_BROKER_URL: kafka:9092
     networks:
       - scms
 
-  blocktrack_postgres:
+  blocktrack-postgres:
     image: postgres:15
-    container_name: blocktrack_postgres
+    container_name: blocktrack-postgres
     restart: always
     environment:
       POSTGRES_USER: blockuser
@@ -54,7 +54,7 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - blocktrack_postgres
+      - blocktrack-postgres
     networks:
       - scms
 volumes:
