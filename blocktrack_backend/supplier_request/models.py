@@ -12,7 +12,7 @@ class SupplierRequest(models.Model):
 
     request_id = models.AutoField(primary_key=True)
     supplier_id = models.IntegerField()
-    created_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
     expected_delivery_date = models.DateTimeField()
     product_id = models.IntegerField()
     count = models.FloatField()
