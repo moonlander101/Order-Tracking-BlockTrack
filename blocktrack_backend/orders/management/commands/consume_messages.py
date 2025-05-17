@@ -1,3 +1,4 @@
+import json
 from django.core.management.base import BaseCommand
 from confluent_kafka import Consumer, KafkaException
 from orders.utils import update_order_status
@@ -23,10 +24,23 @@ class Command(BaseCommand):
                         continue
                     else:
                         raise KafkaException(msg.error())
-                order_id = msg.get('order_id')
-                timestamp = msg.get('timestamp')
+                data = msg.value().decode('utf-8')
+                try:
+                    data = json.loads(data)
+                except json.JSONDecodeError:
+                    self.stdout.write(self.style.ERROR(f'Not a valid json message: {data}'))
+                    continue
 
-                update_order_status(order_id, "delivered", timestamp)
+
+                order_id = data.get('order_id')
+                timestamp = data.get('timestamp')
+                status = data.get('status')
+
+                if (not order_id or not timestamp or not status):
+                    self.stdout.write(self.style.ERROR(f'Invalid Data: {data}'))
+                    continue
+
+                update_order_status(order_id, status, timestamp)
         except KeyboardInterrupt:
             pass
         finally:
