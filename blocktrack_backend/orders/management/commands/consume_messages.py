@@ -1,4 +1,5 @@
 import json
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from confluent_kafka import Consumer, KafkaException
 from orders.utils import update_order_status
@@ -7,12 +8,12 @@ class Command(BaseCommand):
     help = 'Consume messages from Kafka'
     def handle(self, *args, **kwargs):
         conf = {
-            'bootstrap.servers': "localhost:9092",
+            'bootstrap.servers': settings.KAFKA_BROKER_URL,
             'group.id': "order_consumer_group",
             'auto.offset.reset': 'earliest'
         }
         consumer = Consumer(**conf)
-        consumer.subscribe(['orders.delivered'])
+        consumer.subscribe(['shipment.status.updated'])
         try:
             self.stdout.write(self.style.SUCCESS('Starting consumer...'))
             while True:

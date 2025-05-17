@@ -9,10 +9,29 @@ services:
     restart: always
     volumes:
       - ".:/app/"
-    command: /bin/sh -c "cd /app/blocktrack_backend && gunicorn blocktrack_backend.wsgi:application --bind 0.0.0.0:8000"
+    # command: /bin/sh -c "cd /app/blocktrack_backend && gunicorn blocktrack_backend.wsgi:application --bind 0.0.0.0:8000"
+    command: /bin/sh -c "cd /app/blocktrack_backend && python manage.py runserver 0.0.0.0:8000"
+    env_file:
+      - .env
     networks:
       - scms
   
+  blocktrack_consumer:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: blocktrack_consumer
+    restart: always
+    volumes:
+      - ".:/app/"
+    command: /bin/sh -c "cd /app/blocktrack_backend && python manage.py consume_messages"
+    depends_on:
+      - blocktrack_postgres
+    environment:
+      KAFKA_BROKER_URL: kafka:9092
+    networks:
+      - scms
+
   blocktrack_postgres:
     image: postgres:15
     container_name: blocktrack_postgres
