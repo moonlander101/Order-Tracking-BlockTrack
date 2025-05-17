@@ -6,10 +6,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# WORKDIR /app
+COPY ./blocktrack_backend/requirements.txt /
 
-# COPY . .
-
-WORKDIR /app/blocktrack_backend
+RUN pip install --no-cache-dir --upgrade pip \
+  && pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000

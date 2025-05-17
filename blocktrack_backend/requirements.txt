@@ -20,3 +20,4 @@ django-cors-headers
 drf_yasg
 confluent-kafka
 httpx
+gunicorn
