@@ -45,7 +45,7 @@ class Command(BaseCommand):
 
         for supplier_id, products in SUPPLIER_PRODUCTS.items():
             for sku, warehouse_name in products:
-                for _ in range(2):
+                for _ in range(10):
                     created_at = now - timedelta(days=random.randint(1, 30))
                     expected_delivery_date = created_at + timedelta(days=5)
                     status = random.choice(statuses)

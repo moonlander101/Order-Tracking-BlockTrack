@@ -174,10 +174,10 @@ USER_SERVICE_URL=
 Run the dummy.py as follows:
 ```bash
 # On Linux/MacOS
-python manage.py shell < dummy.py
+python manage.py dummy_orders
 
 # On Windows
-python manage.py shell < dummy.py
+python manage.py dummy_supplier_requests
 ```
 
 ### 8. View the API Documentation
