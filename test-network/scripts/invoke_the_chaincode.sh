@@ -31,20 +31,20 @@ export CORE_PEER_LOCALMSPID="Org1MSP"
 export CORE_PEER_TLS_ENABLED=true
 export CORE_PEER_TLS_ROOTCERT_FILE="$ORG_PATH/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
 export CORE_PEER_MSPCONFIGPATH="$ORG_PATH/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
-export CORE_PEER_ADDRESS=localhost:7051
+export CORE_PEER_ADDRESS=peer0.org1.example.com:7051
 
 # 🛠 Invoke chaincode and capture TXID
 set +e
 RESULT=$(peer chaincode invoke \
-  -o localhost:7050 \
+  -o orderer.example.com:7050 \
   --ordererTLSHostnameOverride orderer.example.com \
   --tls \
   --cafile "$ORG_PATH/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" \
   -C mychannel \
   -n ordercc \
-  --peerAddresses localhost:7051 \
+  --peerAddresses peer0.org1.example.com:7051 \
   --tlsRootCertFiles "$ORG_PATH/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" \
-  --peerAddresses localhost:9051 \
+  --peerAddresses peer0.org2.example.com:9051 \
   --tlsRootCertFiles "$ORG_PATH/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" \
   -c "{\"function\":\"CreateOrder\",\"Args\":[\"$ORDER_ID\",\"$STATUS\",\"$TIMESTAMP\",\"$ORDER_TYPE\",$DOC_HASHES_JSON]}"
 )

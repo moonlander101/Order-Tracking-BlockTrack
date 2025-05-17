@@ -23,7 +23,7 @@ def get_fabric_env():
     env["CORE_PEER_TLS_ENABLED"] = "true"
     env["CORE_PEER_TLS_ROOTCERT_FILE"] = f"{TEST_NETWORK}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"
     env["CORE_PEER_MSPCONFIGPATH"] = f"{TEST_NETWORK}/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp"
-    env["CORE_PEER_ADDRESS"] = "localhost:7051"
+    env["CORE_PEER_ADDRESS"] = "peer0.org1.example.com:7051"
     return env
 
 def invoke_create_order(order_id, timestamp, status, order_type, documentHashes=[]):
@@ -94,7 +94,7 @@ def invoke_read_order(order_id):
         "peer", "chaincode", "query",
         "--tls",
         "--cafile", str(TEST_NETWORK / "organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"),
-        "--peerAddresses", "localhost:7051",
+        "--peerAddresses", "peer0.org1.example.com:7051",
         "--tlsRootCertFiles", str(TEST_NETWORK / "organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"),
         "-C", "mychannel",
         "-n", "ordercc",

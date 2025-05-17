@@ -10,7 +10,14 @@ services:
       - ipfs_data:/data/ipfs
       - ipfs_staging:/export
     restart: unless-stopped
+    networks:
+      - scms
 
 volumes:
   ipfs_data:
   ipfs_staging:
+
+networks:
+  scms:
+    external: true
+    name: scms-network
