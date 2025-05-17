@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.exceptions import ValidationError
+from django.utils.timezone import now
 
 class SupplierRequest(models.Model):
     STATUS_CHOICES = [
@@ -25,3 +27,9 @@ class SupplierRequest(models.Model):
         MaxValueValidator(10)
     ], blank=True, null=True)
     is_defective = models.BooleanField(blank=True, null=True)
+
+    def clean(self):
+        if self.expected_delivery_date <= now():
+            raise ValidationError({
+                'expected_delivery_date': 'Expected delivery date must be in the future.'
+            })

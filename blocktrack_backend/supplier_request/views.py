@@ -13,6 +13,7 @@ from .serializers import SupplierRequestSerializer
 # from datetime import datetime, timezone
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.core.exceptions import ValidationError
 
 # Get service URLs from environment variables
 user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
@@ -33,8 +34,7 @@ class SupplierRequestListCreate(APIView):
             # If no match found, raise error
             raise Exception(f"No price found for product {product_id} from supplier {supplier_id}")
         else:
-            print(f"Failed to get supplier products: {response.status_code}")
-            return None
+            raise Exception(f"Failed to get supplier products: {response.status_code}")
 
     @swagger_auto_schema(
         request_body=SupplierRequestSerializer,
@@ -45,22 +45,25 @@ class SupplierRequestListCreate(APIView):
             serializer = SupplierRequestSerializer(data=request.data)
             if serializer.is_valid():
                 data = serializer.validated_data
+                data['unit_price'] = self.get_unit_price(data["product_id"],data["supplier_id"])
 
-                print("data given by this is", data["product_id"])
-                type
-                # data['unit_price'] = self.get_unit_price(data["product_id"],data["supplier_id"])
-                data['unit_price'] = 69
-                instance = SupplierRequest.objects.create(**data)
+                try:
+                    instance = SupplierRequest(**data)
+                    instance.full_clean()
+                    instance.save()
+                except ValidationError as e:
+                    return Response(e.message_dict, status=status.HTTP_400_BAD_REQUEST)
 
                 invoke_create_order(
                     order_id=instance.request_id,
-                    timestamp=instance.created_at,
+                    timestamp=instance.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
                     status="Pending",
                     order_type="SR", 
                     documentHashes=[]
                 )
 
                 return Response(SupplierRequestSerializer(instance).data, status=status.HTTP_201_CREATED)
+
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({
