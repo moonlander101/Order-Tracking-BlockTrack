@@ -15,6 +15,7 @@ from .serializers import SupplierRequestSerializer
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.core.exceptions import ValidationError
+from django.core.cache import cache
 
 # Get service URLs from environment variables
 user_service_url = os.environ.get('USER_SERVICE_URL', 'http://127.0.0.1:8002')
@@ -316,31 +317,38 @@ class SupplierRequestWithNames(APIView):
         serializer = SupplierRequestSerializer(supplier_requests, many=True)
         data = serializer.data
 
-        # Enrich data with supplier names and product names
+        # Fetch all products
         product_details = fetch_products()
         id_to_name = {str(p["id"]): p["product_name"] for p in product_details}
         
         for item in data:
-            # Fetch supplier name
-
+            # Fetch/ Cache supplier name
             try:
                 supplier_id = item.get('supplier_id')
-                supplier_response = requests.get(f"{user_service_url}/api/v1/suppliers/{supplier_id}/info/")
-                if supplier_response.status_code == 200:
-                    supplier_data = supplier_response.json()
+                
+                cache_key = f"supplier_info_{supplier_id}"
+                supplier_data = cache.get(cache_key)
+                
+                if not supplier_data:
+                    supplier_response = requests.get(f"{user_service_url}/api/v1/suppliers/{supplier_id}/info/")
+                    if supplier_response.status_code == 200:
+                        supplier_data = supplier_response.json()
+                        cache.set(cache_key, supplier_data, 3600)
+                    else:
+                        supplier_data = None
+
+                if (supplier_data.get('user')):
                     supplier_user_data = supplier_data.get('user')
-                    print(supplier_data)
                     item['supplier_name'] = supplier_user_data.get('first_name', 'Unknown') + " " + supplier_user_data.get('last_name', 'Unknown')
                 else:
-                    item['supplier_name'] = 'Unknown'
+                    item['supplier_name'] = "Unknown"
+
             except Exception as e:
                 item['supplier_name'] = 'Error fetching supplier'
                 print(f"Error fetching supplier info: {str(e)}")
             
-            # Fetch product name
             try:
                 product_id = item.get('product_id')
-                # product_response = requests.get(f"{warehouse_service_url}/api/product/products/{product_id}/")
                 product_name = id_to_name.get(str(product_id))
                 if product_name:
                     item['product_name'] = product_name
