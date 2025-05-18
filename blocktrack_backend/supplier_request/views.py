@@ -1,4 +1,5 @@
 from decimal import Decimal
+from orders.utils.endpoints import fetch_products
 from orders.utils.blockchain_utils import invoke_create_order, invoke_update_order_status
 from .utils import add_price_competitiveness_score
 from rest_framework.views import APIView
@@ -112,14 +113,16 @@ class SupplierRequestBySupplier(APIView):
         serializer = SupplierRequestSerializer(reqs, many=True)
         data = serializer.data
 
+        product_details = fetch_products()
+        id_to_name = {str(p["id"]): p["product_name"] for p in product_details}
+
         # Enrich data with product information
         for item in data:
             try:
                 product_id = item.get('product_id')
-                product_response = requests.get(f"{warehouse_service_url}/api/product/products/{product_id}/")
-                if product_response.status_code == 200:
-                    product_data = product_response.json()
-                    item['product_name'] = product_data.get('product_name', 'Unknown')
+                product_name = id_to_name.get(str(product_id))
+                if product_name:
+                    item['product_name'] = product_name
                 else:
                     item['product_name'] = 'Unknown'
             except Exception as e:
@@ -314,12 +317,15 @@ class SupplierRequestWithNames(APIView):
         data = serializer.data
 
         # Enrich data with supplier names and product names
+        product_details = fetch_products()
+        id_to_name = {str(p["id"]): p["product_name"] for p in product_details}
+        
         for item in data:
             # Fetch supplier name
 
             try:
                 supplier_id = item.get('supplier_id')
-                supplier_response = requests.get(f"{user_service_url}/api/v1/core/suppliers/{supplier_id}/info/")
+                supplier_response = requests.get(f"{user_service_url}/api/v1/suppliers/{supplier_id}/info/")
                 if supplier_response.status_code == 200:
                     supplier_data = supplier_response.json()
                     supplier_user_data = supplier_data.get('user')
@@ -334,11 +340,10 @@ class SupplierRequestWithNames(APIView):
             # Fetch product name
             try:
                 product_id = item.get('product_id')
-                product_response = requests.get(f"{warehouse_service_url}/api/product/products/{product_id}/")
-                
-                if product_response.status_code == 200:
-                    product_data = product_response.json()
-                    item['product_name'] = product_data.get('product_name', 'Unknown')
+                # product_response = requests.get(f"{warehouse_service_url}/api/product/products/{product_id}/")
+                product_name = id_to_name.get(str(product_id))
+                if product_name:
+                    item['product_name'] = product_name
                 else:
                     item['product_name'] = 'Unknown'
             except Exception as e:
