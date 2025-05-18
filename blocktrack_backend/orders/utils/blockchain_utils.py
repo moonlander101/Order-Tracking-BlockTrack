@@ -148,7 +148,7 @@ def invoke_update_order_status(order_id, status, timestamp):
     )
 
     print("✅ STDOUT:", result.stdout)
-    # print("❌ STDERR:", result.stderr)
+    print("❌ STDERR:", result.stderr)
 
     if result.returncode != 0:
         raise Exception(f"Invoke script failed:\n{result.stderr}")

@@ -110,15 +110,24 @@ class OrderListCreateView(generics.ListCreateAPIView):
 class OrderByWarehouse(APIView):
     @swagger_auto_schema(
         manual_parameters=[
-            # Define query parameter "test"
             openapi.Parameter(
-                'minimal', openapi.IN_QUERY, description="Option to reduce parameters to only order_id and products", type=openapi.TYPE_BOOLEAN
+                'minimal', openapi.IN_QUERY,
+                description="Option to reduce parameters to only order_id and products",
+                type=openapi.TYPE_BOOLEAN
+            ),
+            openapi.Parameter(
+                'status', openapi.IN_QUERY,
+                description="Filter orders by status",
+                type=openapi.TYPE_STRING
             )
         ]
     )
     def get(self, request, warehouse_id):
         try:
+            status_param = request.query_params.get('status', None)
             queryset = Order.objects.filter(details__warehouse_id=warehouse_id)
+            if status_param:
+                queryset = queryset.filter(status=status_param)
 
             minimal = request.GET.get('minimal', False)
 
