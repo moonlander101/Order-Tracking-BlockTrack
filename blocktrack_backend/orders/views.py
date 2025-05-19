@@ -246,7 +246,7 @@ class OrderStatusUpdateView(APIView):
             # Create the event and push to kafka
             if new_status == "accepted":
                 warehouse_id = order.details.warehouse_id
-                warehouse_location = fetch_warehouse_details(warehouse_id)
+                warehouse_location = fetch_warehouse_details(warehouse_id)[0]
 
                 if(not warehouse_location):
                     return Response(
@@ -268,7 +268,7 @@ class OrderStatusUpdateView(APIView):
                     "destination": {"lat": order.details.latitude, "lng": order.details.longitude},
                     "demand": 10
                 }
-                print("Sending to kafka")
+                print(f"Sending to kafka, {event}")
                 send_to_kafka('orders.created', event)
             
             invoke_update_order_status(order_id, request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
