@@ -2,6 +2,7 @@ import random
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from orders.models import Order, OrderDetails, OrderProduct
+from orders.utils.blockchain_utils import invoke_create_order
 
 PRODUCTS = [
     {"id": 1, "unit_price": 1324.79},
@@ -18,6 +19,7 @@ PRODUCTS = [
 
 WAREHOUSES = {
     "Colombo Central": 1,
+    "Kandy Kandy Depot" : 2,
     "Kurunegala Rock": 3
 }
 
@@ -35,10 +37,21 @@ class Command(BaseCommand):
 
         for user_id in range(1, 11):
             for _ in range(10):
+                status_choice = random.choice(['pending', 'accepted', 'shipped', 'delivered'])
                 order = Order.objects.create(
                     user_id=user_id,
-                    status=random.choice(['pending', 'accepted', 'shipped', 'delivered']),
+                    status=status_choice,
                     created_at=timezone.now()
+                )
+
+                order_id = order.order_id
+
+                invoke_create_order(
+                    order_id=order_id,
+                    status=status_choice,
+                    order_type="ORD",
+                    timestamp=timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    documentHashes=[]
                 )
 
                 warehouse_name = random.choice(list(WAREHOUSES.keys()))
@@ -67,5 +80,6 @@ class Command(BaseCommand):
                         count=random.randint(1, 10),
                         unit_price=product["unit_price"]
                     )
+            self.stdout.write(self.style.NOTICE(f"Generated orders for user {user_id}"))
 
         self.stdout.write(self.style.SUCCESS("Dummy vendor orders generated"))
