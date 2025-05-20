@@ -25,7 +25,7 @@ class DocsCreate(APIView):
     parser_classes = [MultiPartParser]
 
     @swagger_auto_schema(
-        operation_description="Upload documents for an order",
+        operation_description="Upload documents for an order, remember to prefix with ORD_",
         manual_parameters=[
             openapi.Parameter(
                 name="document",

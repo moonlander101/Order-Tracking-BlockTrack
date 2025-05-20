@@ -32,9 +32,15 @@ def invoke_create_order(order_id, timestamp, status, order_type, documentHashes=
     if (order_type != "ORD" and order_type != "SR"):
         raise Exception("Invalid Order Status")
 
+    order_id_key = str(order_id)
+    if (order_type == "ORD"):
+        order_id_key = "ORD_" + order_id_key
+    else:
+        order_id_key = "SR_" + order_id_key
+
     args_json = json.dumps({
         "function": "CreateOrder",
-        "Args": [order_id, status, timestamp, order_type, json.dumps(documentHashes)]
+        "Args": [order_id_key, status, timestamp, order_type, json.dumps(documentHashes)]
     })
 
     print("🔧 Executing:", CREATE_ORDER_SCRIPT_PATH, args_json)
@@ -82,12 +88,18 @@ def invoke_add_docs(order_id, docHashes):
         raise Exception(f"Invoke script failed:\n{result.stderr}")
     
 
-def invoke_read_order(order_id):
+def invoke_read_order(order_id, ord_type):
     if not order_id:
         # return Response({"error": "Order ID is required"}, status=status.HTTP_400_BAD_REQUEST)
         raise Exception({"error": "Order ID is required"})
     
     fabric_env = get_fabric_env()
+
+    order_id_key = str(order_id)
+    if (ord_type == "SR"):
+        order_id_key = "SR_" + order_id_key
+    else:
+        order_id_key = "ORD_" + order_id_key
 
     # Safely formatted single-line command
     command = [
@@ -98,7 +110,7 @@ def invoke_read_order(order_id):
         "--tlsRootCertFiles", str(TEST_NETWORK / "organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"),
         "-C", "mychannel",
         "-n", "ordercc",
-        "-c", f'{{"Args":["ReadOrder", "{order_id}"]}}'
+        "-c", f'{{"Args":["ReadOrder", "{order_id_key}"]}}'
     ]
 
     print("🔍 Executing ReadOrder command for:", order_id)
@@ -131,11 +143,17 @@ def invoke_read_order(order_id):
             "details": str(e)
         })
 
-def invoke_update_order_status(order_id, status, timestamp):
+def invoke_update_order_status(order_id, ord_type, status, timestamp):
+    order_id_key = str(order_id)
+    if (ord_type == "SR"):
+        order_id_key = "SR_" + order_id_key
+    else:
+        order_id_key = "ORD_" + order_id_key
+
     fabric_env = get_fabric_env()
     
     args_json = json.dumps({
-        "Args": [order_id, status, timestamp]
+        "Args": [order_id_key, status, timestamp]
     })
 
     print("🔧 Executing:", UPDATE_DOCS_SCRIPT_PATH, args_json)
@@ -152,3 +170,48 @@ def invoke_update_order_status(order_id, status, timestamp):
 
     if result.returncode != 0:
         raise Exception(f"Invoke script failed:\n{result.stderr}")
+    
+def invoke_order_history(order_id, type):
+    if not order_id:
+        raise Exception({"error": "Order ID is required"})
+
+    fabric_env = get_fabric_env()
+
+    order_id_key = str(order_id)
+    if type == "SR":
+        order_id_key = "SR_" + order_id_key
+    else:
+        order_id_key = "ORD_" + order_id_key
+
+    command = [
+        "peer", "chaincode", "query",
+        "--tls",
+        "--cafile", str(TEST_NETWORK / "organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"),
+        "--peerAddresses", "peer0.org1.example.com:7051",
+        "--tlsRootCertFiles", str(TEST_NETWORK / "organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt"),
+        "-C", "mychannel",
+        "-n", "ordercc",
+        "-c", f'{{"Args":["GetOrderHistory", "{order_id_key}"]}}'
+    ]
+
+    print("📜 Executing GetOrderHistory command for:", order_id)
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, env=fabric_env)
+
+        if result.returncode != 0:
+            raise Exception({
+                "error": f"Failed to retrieve history for order '{order_id}' from blockchain",
+                "details": result.stderr.strip()
+            })
+
+        return {
+            "order_id": order_id,
+            "history": json.loads(result.stdout.strip())
+        }
+
+    except Exception as e:
+        raise Exception({
+            "error": "Unexpected error",
+            "details": str(e)
+        })

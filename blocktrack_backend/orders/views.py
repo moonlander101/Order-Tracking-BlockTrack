@@ -1,5 +1,5 @@
 from .utils.endpoints import fetch_products, fetch_warehouse_details
-from .utils.blockchain_utils import invoke_create_order, invoke_read_order, invoke_update_order_status
+from .utils.blockchain_utils import invoke_create_order, invoke_update_order_status, invoke_order_history, invoke_read_order
 from . import send_to_kafka
 from .models import Order
 from .serializers import CreateOrderSerializer, MinimalOrderSerializer, OrderSerializer
@@ -34,7 +34,32 @@ class ReadOrderView(APIView):
                 return Response({
                     "error": "order_id query param required"
             }, status=400)    
-            result = invoke_read_order(order_id)
+            result = invoke_read_order(order_id, "ORD")
+            return Response(result)
+        except Exception as e:
+            return Response({
+                "error": "Unexpected error",
+                "details": str(e)
+            }, status=500)
+
+
+class OrderHistoryView(APIView):
+    @swagger_auto_schema(
+        manual_parameters=[
+            # Define query parameter "test"
+            openapi.Parameter(
+                'order_id', openapi.IN_QUERY, description="Id of the order", type=openapi.TYPE_STRING
+            )
+        ]
+    )
+    def get(self, request):
+        try:
+            order_id = request.GET.get("order_id")
+            if (not order_id or len(order_id) == 0):
+                return Response({
+                    "error": "order_id query param required"
+            }, status=400)    
+            result = invoke_order_history(order_id, "ORD")
             return Response(result)
         except Exception as e:
             return Response({
@@ -157,7 +182,7 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
             order_id = kwargs.get('order_id')
             order = Order.objects.get(order_id=order_id)
             status = request.data['status']
-            invoke_update_order_status(order_id, status, timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+            invoke_update_order_status(order_id, "ORD", status, timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
 
             if (status == "accepted"):
@@ -271,7 +296,7 @@ class OrderStatusUpdateView(APIView):
                 print(f"Sending to kafka, {event}")
                 send_to_kafka('orders.created', event)
             
-            invoke_update_order_status(order_id, request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+            invoke_update_order_status(order_id, "ORD", request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
             serializer = OrderSerializer(order, data=new_data, partial=True)
             if serializer.is_valid():

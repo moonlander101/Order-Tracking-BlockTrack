@@ -152,7 +152,7 @@ class SupplierRequestStatusUpdate(APIView):
         # custom logic here
         req.status = request.data['status']
         
-        invoke_update_order_status(request_id, request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+        invoke_update_order_status(request_id, "SR", request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
         if req.status == "received" and not req.received_at:
             req.received_at = timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -181,7 +181,7 @@ class SupplierRequestGetOrPartialUpdate(APIView):
             new_status = request.data.get("status")
 
             if (new_status):
-                invoke_update_order_status(request_id, request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
+                invoke_update_order_status(request_id, "SR", request.data.get("status"), timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
             if new_status == "received" and not req.received_at:
                 req.received_at = timezone.now().strftime("%Y-%m-%dT%H:%M:%SZ")

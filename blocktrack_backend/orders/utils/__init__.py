@@ -11,6 +11,6 @@ def update_order_status(order_id, status,timestamp, func=lambda: None):
 
     order.save()
 
-    invoke_update_order_status(order_id, status, timestamp)
+    invoke_update_order_status(order_id, "ORD", status, timestamp)
 
     func()
