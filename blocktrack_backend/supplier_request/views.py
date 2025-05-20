@@ -1,6 +1,6 @@
 from decimal import Decimal
 from orders.utils.endpoints import fetch_products
-from orders.utils.blockchain_utils import invoke_create_order, invoke_update_order_status
+from orders.utils.blockchain_utils import invoke_create_order, invoke_order_history, invoke_update_order_status
 from .utils import add_price_competitiveness_score
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -79,6 +79,29 @@ class SupplierRequestListCreate(APIView):
         serializer = SupplierRequestSerializer(requests, many=True)
         return Response(serializer.data)
 
+class SRHistoryView(APIView):
+    @swagger_auto_schema(
+        manual_parameters=[
+            # Define query parameter "test"
+            openapi.Parameter(
+                'request_id', openapi.IN_QUERY, description="Id of the supplier request", type=openapi.TYPE_STRING
+            )
+        ]
+    )
+    def get(self, request):
+        try:
+            order_id = request.GET.get("request_id")
+            if (not order_id or len(order_id) == 0):
+                return Response({
+                    "error": "order_id query param required"
+            }, status=400)    
+            result = invoke_order_history(order_id, "SR")
+            return Response(result)
+        except Exception as e:
+            return Response({
+                "error": "Unexpected error",
+                "details": str(e)
+            }, status=500)
 
 
 class SupplierRequestBySupplier(APIView):
