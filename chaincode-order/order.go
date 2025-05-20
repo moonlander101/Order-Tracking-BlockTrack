@@ -27,6 +27,12 @@ type Order struct {
 	DocumentHashes []string   `json:"DocumentHashes"`
 }
 
+type OrderHistory struct {
+	TxId     string `json:"TxId"`
+	IsDelete bool   `json:"IsDelete"`
+	Order    *Order `json:"Order,omitempty"`
+}
+
 func isValidOrderType(t string) bool {
 	return t == string(OrderTypeORD) || t == string(OrderTypeSR)
 }
@@ -180,6 +186,38 @@ func (s *SmartContract) ReadOrder(ctx contractapi.TransactionContextInterface, i
 		return nil, err
 	}
 	return &order, nil
+}
+
+func (s *SmartContract) GetOrderHistory(ctx contractapi.TransactionContextInterface, id string) ([]*OrderHistory, error) {
+	resultsIterator, err := ctx.GetStub().GetHistoryForKey(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history for order %s: %v", id, err)
+	}
+	defer resultsIterator.Close()
+
+	var history []*OrderHistory
+	for resultsIterator.HasNext() {
+		modification, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		entry := &OrderHistory{
+			TxId:     modification.TxId,
+			IsDelete: modification.IsDelete,
+		}
+
+		if !modification.IsDelete {
+			var order Order
+			if err := json.Unmarshal(modification.Value, &order); err != nil {
+				return nil, err
+			}
+			entry.Order = &order
+		}
+
+		history = append(history, entry)
+	}
+	return history, nil
 }
 
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
