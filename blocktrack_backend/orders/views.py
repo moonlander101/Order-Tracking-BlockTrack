@@ -174,7 +174,7 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
                 event = {
                     "order_id": order_id,
                     "origin": {"lat": warehouse_location.get("latitude"), "lng":   warehouse_location.get("longitude")},
-                    "destination": {"lat": order.details.latitude, "lng": order.details.longitude},
+                    "destination": {"lat": order.details.longitude, "lng": order.details.latitude},
                     "demand": 10
                 }
                 send_to_kafka('orders.created', event)
